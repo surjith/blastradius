@@ -1,0 +1,11 @@
+[project]
+name = "blastradius"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "networkx>=3.6.1",
+    "rdflib>=7.6.0",
+    "typer>=0.23.1",
+]

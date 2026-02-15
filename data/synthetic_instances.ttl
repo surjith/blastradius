@@ -1,0 +1,166 @@
+@prefix ex:  <https://example.com/shopify-onto#> .
+@prefix :    <https://example.com/shopify-inst#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+######################################################################
+# Locations (fulfillment origin)
+######################################################################
+
+:loc_syd_01 a ex:Location ;
+  ex:gid    "gid://shopify/Location/1001" ;
+  ex:name   "Sydney Warehouse" ;
+  ex:status "active" .
+
+:loc_mel_01 a ex:Location ;
+  ex:gid    "gid://shopify/Location/1002" ;
+  ex:name   "Melbourne Warehouse" ;
+  ex:status "active" .
+
+######################################################################
+# Customers
+######################################################################
+
+:cust_01 a ex:Customer ;
+  ex:gid    "gid://shopify/Customer/2001" ;
+  ex:name   "Asha Iyer" ;
+  ex:status "active" .
+
+:cust_02 a ex:Customer ;
+  ex:gid    "gid://shopify/Customer/2002" ;
+  ex:name   "Liam Chen" ;
+  ex:status "active" .
+
+######################################################################
+# Products, Variants, InventoryItems
+######################################################################
+
+:prod_hoodie a ex:Product ;
+  ex:gid    "gid://shopify/Product/3001" ;
+  ex:name   "Comfy Hoodie" ;
+  ex:status "active" ;
+  ex:hasVariant :var_hoodie_s ;
+  ex:hasVariant :var_hoodie_m .
+
+:var_hoodie_s a ex:ProductVariant ;
+  ex:gid    "gid://shopify/ProductVariant/3101" ;
+  ex:name   "Comfy Hoodie - Small" ;
+  ex:status "active" ;
+  ex:hasInventoryItem :inv_hoodie_s .
+
+:var_hoodie_m a ex:ProductVariant ;
+  ex:gid    "gid://shopify/ProductVariant/3102" ;
+  ex:name   "Comfy Hoodie - Medium" ;
+  ex:status "active" ;
+  ex:hasInventoryItem :inv_hoodie_m .
+
+:inv_hoodie_s a ex:InventoryItem ;
+  ex:gid    "gid://shopify/InventoryItem/3201" ;
+  ex:name   "Hoodie Small Inventory" ;
+  ex:status "in_stock" ;
+  ex:sku    "HD-S-001" .
+
+:inv_hoodie_m a ex:InventoryItem ;
+  ex:gid    "gid://shopify/InventoryItem/3202" ;
+  ex:name   "Hoodie Medium Inventory" ;
+  ex:status "low_stock" ;
+  ex:sku    "HD-M-001" .
+
+:prod_mug a ex:Product ;
+  ex:gid    "gid://shopify/Product/3002" ;
+  ex:name   "Ceramic Mug" ;
+  ex:status "active" ;
+  ex:hasVariant :var_mug_white .
+
+:var_mug_white a ex:ProductVariant ;
+  ex:gid    "gid://shopify/ProductVariant/3110" ;
+  ex:name   "Ceramic Mug - White" ;
+  ex:status "active" ;
+  ex:hasInventoryItem :inv_mug_white .
+
+:inv_mug_white a ex:InventoryItem ;
+  ex:gid    "gid://shopify/InventoryItem/3210" ;
+  ex:name   "Mug White Inventory" ;
+  ex:status "in_stock" ;
+  ex:sku    "MG-W-010" .
+
+######################################################################
+# Orders, LineItems, Fulfillments
+######################################################################
+
+:order_9001 a ex:Order ;
+  ex:gid        "gid://shopify/Order/9001" ;
+  ex:name       "Order #9001" ;
+  ex:status     "unfulfilled" ;
+  ex:orderedBy  :cust_01 ;
+  ex:hasLineItem :li_9001_1 ;
+  ex:hasLineItem :li_9001_2 ;
+  ex:hasFulfillment :ful_9001_1 .
+
+:li_9001_1 a ex:LineItem ;
+  ex:gid    "gid://shopify/LineItem/9101" ;
+  ex:name   "Comfy Hoodie - Small (x1)" ;
+  ex:status "open" ;
+  ex:lineItemVariant :var_hoodie_s .
+
+:li_9001_2 a ex:LineItem ;
+  ex:gid    "gid://shopify/LineItem/9102" ;
+  ex:name   "Ceramic Mug - White (x2)" ;
+  ex:status "open" ;
+  ex:lineItemVariant :var_mug_white .
+
+:ful_9001_1 a ex:Fulfillment ;
+  ex:gid    "gid://shopify/Fulfillment/9201" ;
+  ex:name   "Fulfillment 9201" ;
+  ex:status "pending" ;
+  ex:fulfilledFrom :loc_syd_01 ;
+  ex:fulfillsLineItem :li_9001_1 ;
+  ex:fulfillsLineItem :li_9001_2 .
+
+:order_9002 a ex:Order ;
+  ex:gid        "gid://shopify/Order/9002" ;
+  ex:name       "Order #9002" ;
+  ex:status     "in_progress" ;
+  ex:orderedBy  :cust_02 ;
+  ex:hasLineItem :li_9002_1 ;
+  ex:hasFulfillment :ful_9002_1 .
+
+:li_9002_1 a ex:LineItem ;
+  ex:gid    "gid://shopify/LineItem/9103" ;
+  ex:name   "Comfy Hoodie - Medium (x1)" ;
+  ex:status "open" ;
+  ex:lineItemVariant :var_hoodie_m .
+
+:ful_9002_1 a ex:Fulfillment ;
+  ex:gid    "gid://shopify/Fulfillment/9202" ;
+  ex:name   "Fulfillment 9202" ;
+  ex:status "processing" ;
+  ex:fulfilledFrom :loc_mel_01 ;
+  ex:fulfillsLineItem :li_9002_1 .
+
+######################################################################
+# Metaobjects + Metafields (demonstrate schema-ish dependencies)
+######################################################################
+
+:mo_campaign_summer a ex:Metaobject ;
+  ex:gid    "gid://shopify/Metaobject/7001" ;
+  ex:name   "Summer Campaign 2026" ;
+  ex:status "active" .
+
+:mf_prod_hoodie_campaign a ex:Metafield ;
+  ex:gid    "gid://shopify/Metafield/8001" ;
+  ex:name   "campaign_ref" ;
+  ex:status "active" ;
+  ex:metafieldOwner :prod_hoodie ;
+  ex:referencesMetaobject :mo_campaign_summer .
+
+:mf_prod_mug_campaign a ex:Metafield ;
+  ex:gid    "gid://shopify/Metafield/8002" ;
+  ex:name   "campaign_ref" ;
+  ex:status "active" ;
+  ex:metafieldOwner :prod_mug ;
+  ex:referencesMetaobject :mo_campaign_summer .
+
+# Optional: also link owner -> metafield using hasMetafield (domain is owl:Thing in your ontology)
+:prod_hoodie ex:hasMetafield :mf_prod_hoodie_campaign .
+:prod_mug    ex:hasMetafield :mf_prod_mug_campaign .

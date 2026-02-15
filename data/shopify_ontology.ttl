@@ -1,0 +1,82 @@
+@prefix ex:    <https://example.com/shopify-onto#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+
+ex:ShopifyOntology a owl:Ontology ;
+  rdfs:label "Shopify Admin (POC) Ontology" .
+
+### Classes
+ex:Product        a owl:Class .
+ex:ProductVariant a owl:Class .
+ex:InventoryItem  a owl:Class .
+ex:Order          a owl:Class .
+ex:LineItem       a owl:Class .
+ex:Customer       a owl:Class .
+ex:Fulfillment    a owl:Class .
+ex:Location       a owl:Class .
+ex:Metafield      a owl:Class .
+ex:Metaobject     a owl:Class .
+
+### Core Object Properties (relationships)
+ex:hasVariant a owl:ObjectProperty ;
+  rdfs:domain ex:Product ;
+  rdfs:range  ex:ProductVariant .
+
+ex:hasInventoryItem a owl:ObjectProperty ;
+  rdfs:domain ex:ProductVariant ;
+  rdfs:range  ex:InventoryItem .
+
+ex:hasLineItem a owl:ObjectProperty ;
+  rdfs:domain ex:Order ;
+  rdfs:range  ex:LineItem .
+
+ex:orderedBy a owl:ObjectProperty ;
+  rdfs:domain ex:Order ;
+  rdfs:range  ex:Customer .
+
+ex:hasFulfillment a owl:ObjectProperty ;
+  rdfs:domain ex:Order ;
+  rdfs:range  ex:Fulfillment .
+
+ex:fulfillsLineItem a owl:ObjectProperty ;
+  rdfs:domain ex:Fulfillment ;
+  rdfs:range  ex:LineItem .
+
+ex:fulfilledFrom a owl:ObjectProperty ;
+  rdfs:domain ex:Fulfillment ;
+  rdfs:range  ex:Location .
+
+ex:hasMetafield a owl:ObjectProperty ;
+  rdfs:domain owl:Thing ;
+  rdfs:range  ex:Metafield .
+
+ex:metafieldOwner a owl:ObjectProperty ;
+  rdfs:domain ex:Metafield ;
+  rdfs:range  owl:Thing .
+
+ex:referencesMetaobject a owl:ObjectProperty ;
+  rdfs:domain ex:Metafield ;
+  rdfs:range  ex:Metaobject .
+
+ex:references a owl:ObjectProperty ;
+  rdfs:domain ex:LineItem ;
+  rdfs:range  ex:ProductVariant .
+
+### Minimal Datatype Properties
+ex:gid a owl:DatatypeProperty ;
+  rdfs:domain owl:Thing ;
+  rdfs:range  xsd:string .
+
+ex:name a owl:DatatypeProperty ;
+  rdfs:domain owl:Thing ;
+  rdfs:range  xsd:string .
+
+ex:status a owl:DatatypeProperty ;
+  rdfs:domain owl:Thing ;
+  rdfs:range  xsd:string .
+
+ex:sku a owl:DatatypeProperty ;
+  rdfs:domain ex:InventoryItem ;
+  rdfs:range  xsd:string .
