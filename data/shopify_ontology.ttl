@@ -1,82 +1,254 @@
-@prefix ex:    <https://example.com/shopify-onto#> .
-@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix owl:   <http://www.w3.org/2002/07/owl#> .
-@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix : <http://www.semanticweb.org/owl/owlapi/turtle#> .
+@prefix ex: <https://example.com/shopify-onto#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <https://example.com/shopify-onto#ShopifyOntology> .
 
-ex:ShopifyOntology a owl:Ontology ;
-  rdfs:label "Shopify Admin (POC) Ontology" .
+<https://example.com/shopify-onto#ShopifyOntology> rdf:type owl:Ontology ;
+                                                   
+                                                   rdfs:label "Shopify Admin (POC) Ontology" ;
+                                                   
+                                                   owl:imports <https://example.com/shopify-onto#ShopifyOntology> .
 
-### Classes
-ex:Product        a owl:Class .
-ex:ProductVariant a owl:Class .
-ex:InventoryItem  a owl:Class .
-ex:Order          a owl:Class .
-ex:LineItem       a owl:Class .
-ex:Customer       a owl:Class .
-ex:Fulfillment    a owl:Class .
-ex:Location       a owl:Class .
-ex:Metafield      a owl:Class .
-ex:Metaobject     a owl:Class .
 
-### Core Object Properties (relationships)
-ex:hasVariant a owl:ObjectProperty ;
-  rdfs:domain ex:Product ;
-  rdfs:range  ex:ProductVariant .
+#################################################################
+#
+#    Object Properties
+#
+#################################################################
 
-ex:hasInventoryItem a owl:ObjectProperty ;
-  rdfs:domain ex:ProductVariant ;
-  rdfs:range  ex:InventoryItem .
 
-ex:hasLineItem a owl:ObjectProperty ;
-  rdfs:domain ex:Order ;
-  rdfs:range  ex:LineItem .
+###  https://example.com/shopify-onto#fulfilledFrom
 
-ex:orderedBy a owl:ObjectProperty ;
-  rdfs:domain ex:Order ;
-  rdfs:range  ex:Customer .
+ex:fulfilledFrom rdf:type owl:ObjectProperty ;
+                 
+                 rdfs:domain ex:Fulfillment ;
+                 
+                 rdfs:range ex:Location .
 
-ex:hasFulfillment a owl:ObjectProperty ;
-  rdfs:domain ex:Order ;
-  rdfs:range  ex:Fulfillment .
 
-ex:fulfillsLineItem a owl:ObjectProperty ;
-  rdfs:domain ex:Fulfillment ;
-  rdfs:range  ex:LineItem .
 
-ex:fulfilledFrom a owl:ObjectProperty ;
-  rdfs:domain ex:Fulfillment ;
-  rdfs:range  ex:Location .
+###  https://example.com/shopify-onto#fulfillsLineItem
 
-ex:hasMetafield a owl:ObjectProperty ;
-  rdfs:domain owl:Thing ;
-  rdfs:range  ex:Metafield .
+ex:fulfillsLineItem rdf:type owl:ObjectProperty ;
+                    
+                    rdfs:domain ex:Fulfillment ;
+                    
+                    rdfs:range ex:LineItem .
 
-ex:metafieldOwner a owl:ObjectProperty ;
-  rdfs:domain ex:Metafield ;
-  rdfs:range  owl:Thing .
 
-ex:referencesMetaobject a owl:ObjectProperty ;
-  rdfs:domain ex:Metafield ;
-  rdfs:range  ex:Metaobject .
 
-ex:references a owl:ObjectProperty ;
-  rdfs:domain ex:LineItem ;
-  rdfs:range  ex:ProductVariant .
+###  https://example.com/shopify-onto#hasFulfillment
 
-### Minimal Datatype Properties
-ex:gid a owl:DatatypeProperty ;
-  rdfs:domain owl:Thing ;
-  rdfs:range  xsd:string .
+ex:hasFulfillment rdf:type owl:ObjectProperty ;
+                  
+                  rdfs:range ex:Fulfillment ;
+                  
+                  rdfs:domain ex:Order .
 
-ex:name a owl:DatatypeProperty ;
-  rdfs:domain owl:Thing ;
-  rdfs:range  xsd:string .
 
-ex:status a owl:DatatypeProperty ;
-  rdfs:domain owl:Thing ;
-  rdfs:range  xsd:string .
 
-ex:sku a owl:DatatypeProperty ;
-  rdfs:domain ex:InventoryItem ;
-  rdfs:range  xsd:string .
+###  https://example.com/shopify-onto#hasInventoryItem
+
+ex:hasInventoryItem rdf:type owl:ObjectProperty ;
+                    
+                    rdfs:range ex:InventoryItem ;
+                    
+                    rdfs:domain ex:ProductVariant .
+
+
+
+###  https://example.com/shopify-onto#hasLineItem
+
+ex:hasLineItem rdf:type owl:ObjectProperty ;
+               
+               rdfs:range ex:LineItem ;
+               
+               rdfs:domain ex:Order .
+
+
+
+###  https://example.com/shopify-onto#hasMetafield
+
+ex:hasMetafield rdf:type owl:ObjectProperty ;
+                
+                rdfs:domain owl:Thing ;
+                
+                rdfs:range ex:Metafield .
+
+
+
+###  https://example.com/shopify-onto#hasVariant
+
+ex:hasVariant rdf:type owl:ObjectProperty ;
+              
+              rdfs:domain ex:Product ;
+              
+              rdfs:range ex:ProductVariant .
+
+
+
+###  https://example.com/shopify-onto#metafieldOwner
+
+ex:metafieldOwner rdf:type owl:ObjectProperty ;
+                  
+                  rdfs:range owl:Thing ;
+                  
+                  rdfs:domain ex:Metafield .
+
+
+
+###  https://example.com/shopify-onto#orderedBy
+
+ex:orderedBy rdf:type owl:ObjectProperty ;
+             
+             rdfs:range ex:Customer ;
+             
+             rdfs:domain ex:Order .
+
+
+
+###  https://example.com/shopify-onto#references
+
+ex:references rdf:type owl:ObjectProperty ;
+              
+              rdfs:domain ex:LineItem ;
+              
+              rdfs:range ex:ProductVariant .
+
+
+
+###  https://example.com/shopify-onto#referencesMetaobject
+
+ex:referencesMetaobject rdf:type owl:ObjectProperty ;
+                        
+                        rdfs:domain ex:Metafield ;
+                        
+                        rdfs:range ex:Metaobject .
+
+
+
+
+
+#################################################################
+#
+#    Data properties
+#
+#################################################################
+
+
+###  https://example.com/shopify-onto#gid
+
+ex:gid rdf:type owl:DatatypeProperty ;
+       
+       rdfs:range xsd:string ;
+       
+       rdfs:domain owl:Thing .
+
+
+
+###  https://example.com/shopify-onto#name
+
+ex:name rdf:type owl:DatatypeProperty ;
+        
+        rdfs:range xsd:string ;
+        
+        rdfs:domain owl:Thing .
+
+
+
+###  https://example.com/shopify-onto#sku
+
+ex:sku rdf:type owl:DatatypeProperty ;
+       
+       rdfs:range xsd:string ;
+       
+       rdfs:domain ex:InventoryItem .
+
+
+
+###  https://example.com/shopify-onto#status
+
+ex:status rdf:type owl:DatatypeProperty ;
+          
+          rdfs:range xsd:string ;
+          
+          rdfs:domain owl:Thing .
+
+
+
+
+
+#################################################################
+#
+#    Classes
+#
+#################################################################
+
+
+###  https://example.com/shopify-onto#Customer
+
+ex:Customer rdf:type owl:Class .
+
+
+
+###  https://example.com/shopify-onto#Fulfillment
+
+ex:Fulfillment rdf:type owl:Class .
+
+
+
+###  https://example.com/shopify-onto#InventoryItem
+
+ex:InventoryItem rdf:type owl:Class .
+
+
+
+###  https://example.com/shopify-onto#LineItem
+
+ex:LineItem rdf:type owl:Class .
+
+
+
+###  https://example.com/shopify-onto#Location
+
+ex:Location rdf:type owl:Class .
+
+
+
+###  https://example.com/shopify-onto#Metafield
+
+ex:Metafield rdf:type owl:Class .
+
+
+
+###  https://example.com/shopify-onto#Metaobject
+
+ex:Metaobject rdf:type owl:Class .
+
+
+
+###  https://example.com/shopify-onto#Order
+
+ex:Order rdf:type owl:Class .
+
+
+
+###  https://example.com/shopify-onto#Product
+
+ex:Product rdf:type owl:Class .
+
+
+
+###  https://example.com/shopify-onto#ProductVariant
+
+ex:ProductVariant rdf:type owl:Class .
+
+
+
+
+###  Generated by the OWL API (version 3.4.2) http://owlapi.sourceforge.net
+
