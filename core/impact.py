@@ -28,6 +28,7 @@ def blast_radius_paths(
     parent: Dict[str, Optional[str]] = {start: None}
     dist: Dict[str, int] = {start: 0}
     q = deque([start])
+    visited_count = 1
 
     while q:
         u = q.popleft()
@@ -39,6 +40,12 @@ def blast_radius_paths(
                 dist[v] = dist[u] + 1
                 parent[v] = u
                 q.append(v)
+                visited_count += 1
+
+                if visited_count >= traversal.max_results:
+                    # Safety cutoff to prevent runaway graphs.
+                    q.clear()
+                    break
 
     def path_to(n: str) -> list[str]:
         path: list[str] = []
@@ -50,7 +57,7 @@ def blast_radius_paths(
 
     reached = [n for n in dist.keys() if n != start]
     reached.sort(key=lambda x: dist[x])    
-    paths = {n: [path_to(n)] for n in reached}  # ✅ list of paths, each path is a list[str]
+    paths = {n: [path_to(n)] for n in reached} 
 
 
     return BlastRadiusResults(
