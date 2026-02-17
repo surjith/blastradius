@@ -1,6 +1,6 @@
 from __future__ import annotations
 from collections import deque
-from typing import Dict, Optional, Iterable, Set
+from typing import Dict, Optional, Iterable
 
 import networkx as nx
 
@@ -9,11 +9,11 @@ from core.models import BlastRadiusResults, Direction, TraversalSpec
 
 def _neighbors(G: nx.DiGraph, node: str, direction: Direction) -> Iterable[str]:
     if direction == "out":
-        return G.successors(node)
+        return sorted(G.successors(node))
     if direction == "in":
-        return G.predecessors(node)
+        return sorted(G.predecessors(node))
     # both
-    return set(G.successors(node)).union(set(G.predecessors(node)))
+    return sorted(set(G.successors(node)).union(set(G.predecessors(node))))
 
 
 def blast_radius_paths(
@@ -55,7 +55,7 @@ def blast_radius_paths(
         return list(reversed(path))
 
     reached = [n for n in dist.keys() if n != start]
-    reached.sort(key=lambda x: dist[x])    
+    reached.sort(key=lambda x: (dist[x], x))
     paths = {n: [path_to(n)] for n in reached} 
 
 

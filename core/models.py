@@ -53,7 +53,7 @@ class TraversalSpec(BaseModel):
     depth: int = 4
     direction: Direction = "both"
     max_results: int = 200
-    top_n : int = 10
+    top_n: int = Field(default=10, ge=1)
 
 class ImpactSummary(BaseModel):
     counts_by_type: Dict[str, int] = Field(default_factory=dict)
