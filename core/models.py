@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 Direction = Literal["out", "in", "both"]
@@ -49,11 +49,15 @@ class ImpactItem(BaseModel):
     severity: int
     primary_path: List[str]
 
+class TraversalSpec(BaseModel):
+    depth: int = 4
+    direction: Direction = "both"
+    max_results: int = 200
+    top_n : int = 10
 
 class ImpactSummary(BaseModel):
     counts_by_type: Dict[str, int] = Field(default_factory=dict)
     total_impacted: int = 0
-
 
 class ImpactReport(BaseModel):
     change: ChangeSpec
