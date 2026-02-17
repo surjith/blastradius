@@ -90,7 +90,7 @@ def analyze_change(graph: ShopifyGraph, change: ChangeSpec, traversal: Traversal
     if not graph.node_exists(change.target_uri):
         raise ValueError(f"target_uri not found in graph: {change.target_uri}")
 
-    blast = blast_radius_paths(graph.G, start=change.target_uri, traversal=traversal)
+    blast = blast_radius_paths(graph.G, start=change.target_uri, traversalSpec=traversal)
 
     counts = defaultdict(int)
     items: List[ImpactItem] = []

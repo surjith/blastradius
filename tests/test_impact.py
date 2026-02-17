@@ -1,6 +1,7 @@
 import networkx as nx
 import pytest
 
+from core.models import TraversalSpec
 from core.impact import blast_radius_paths
 
 
@@ -14,7 +15,8 @@ def _pick_two_hop_chain(G: nx.DiGraph) -> tuple[str, str, str]:
     for a in G.nodes():
         for b in G.successors(a):
             for c in G.successors(b):
-                return a, b, c
+                if c != a:
+                    return a, b, c
     raise AssertionError("No 2-hop chain (a->b->c) found. Add at least one multi-hop relationship in instances.")
 
 
@@ -27,7 +29,8 @@ def _assert_path_valid_directed(G: nx.DiGraph, path: list[str]) -> None:
 def test_blast_out_reaches_direct_neighbor(nx_graph):
     u, v = _pick_any_edge(nx_graph)
 
-    res = blast_radius_paths(nx_graph, start=u, depth=1, direction="out")
+    traversal = TraversalSpec(depth=1, direction="out")
+    res = blast_radius_paths(nx_graph, start=u, traversalSpec=traversal)
     assert v in res.reached
     assert v in res.paths
 
@@ -40,7 +43,8 @@ def test_blast_out_reaches_direct_neighbor(nx_graph):
 def test_blast_in_reaches_reverse_neighbor(nx_graph):
     u, v = _pick_any_edge(nx_graph)
 
-    res = blast_radius_paths(nx_graph, start=v, depth=1, direction="in")
+    traversal = TraversalSpec(depth=1, direction="in")
+    res = blast_radius_paths(nx_graph, start=v, traversalSpec=traversal)
     assert u in res.reached
     assert u in res.paths
 
@@ -59,7 +63,8 @@ def test_blast_in_reaches_reverse_neighbor(nx_graph):
 def test_blast_two_hop_path(nx_graph):
     a, b, c = _pick_two_hop_chain(nx_graph)
 
-    res = blast_radius_paths(nx_graph, start=a, depth=2, direction="out")
+    traversal = TraversalSpec(depth=2, direction="out")
+    res = blast_radius_paths(nx_graph, start=a, traversalSpec=traversal)
     assert c in res.reached
 
     path = res.paths[c][0]
@@ -70,4 +75,5 @@ def test_blast_two_hop_path(nx_graph):
 
 def test_invalid_start_raises(nx_graph):
     with pytest.raises(ValueError):
-        blast_radius_paths(nx_graph, start="urn:does:not:exist", depth=2, direction="out")
+        traversal = TraversalSpec(depth=2, direction="out")
+        blast_radius_paths(nx_graph, start="urn:does:not:exist", traversalSpec=traversal)
