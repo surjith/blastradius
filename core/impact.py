@@ -4,7 +4,7 @@ from typing import Dict, Optional, Iterable, Set
 
 import networkx as nx
 
-from core.models import BlastRadiusResults, Direction
+from core.models import BlastRadiusResults, Direction, TraversalSpec
 
 
 def _neighbors(G: nx.DiGraph, node: str, direction: Direction) -> Iterable[str]:
@@ -19,8 +19,7 @@ def _neighbors(G: nx.DiGraph, node: str, direction: Direction) -> Iterable[str]:
 def blast_radius_paths(
     G: nx.DiGraph,
     start: str,
-    depth: int = 3,
-    direction: Direction = "out",
+    traversalSpec: TraversalSpec
 ) -> BlastRadiusResults:
     if start not in G:
         raise ValueError(f"Start node not in graph: {start}")
@@ -32,17 +31,17 @@ def blast_radius_paths(
 
     while q:
         u = q.popleft()
-        if dist[u] >= depth:
+        if dist[u] >= traversalSpec.depth:
             continue
 
-        for v in _neighbors(G, u, direction):
+        for v in _neighbors(G, u, traversalSpec.direction):
             if v not in dist:
                 dist[v] = dist[u] + 1
                 parent[v] = u
                 q.append(v)
                 visited_count += 1
 
-                if visited_count >= traversal.max_results:
+                if visited_count >= traversalSpec.max_results:
                     # Safety cutoff to prevent runaway graphs.
                     q.clear()
                     break
@@ -61,9 +60,9 @@ def blast_radius_paths(
 
 
     return BlastRadiusResults(
-        start=start,
-        depth=depth,
-        direction=direction,
-        reached=reached,
-        paths=paths,
+        start = start,
+        depth = traversalSpec.depth,
+        direction = traversalSpec.direction,
+        reached = reached,
+        paths = paths,
     )
