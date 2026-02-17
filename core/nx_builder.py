@@ -20,7 +20,7 @@ def extract_object_properties(rdf: Graph) -> Set[str]:
 
 def rdf_to_networkx(rdf: Graph) -> NXBuildResults:
     obj_props = extract_object_properties(rdf)
-    G = nx.DiGraph()
+    G = nx.MultiDiGraph()
 
     # Nodes + literal attributes
     for s in set(rdf.subjects()):
@@ -45,6 +45,7 @@ def rdf_to_networkx(rdf: Graph) -> NXBuildResults:
         G.add_edge(
             str(s),
             str(o),
+            key=p_uri,
             predicate_uri=p_uri,
             relation=local_name(p_uri),
         )

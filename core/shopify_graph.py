@@ -13,7 +13,7 @@ from core.nx_builder import rdf_to_networkx, local_name
 class ShopifyGraph:
     """Facade over RDFLib Graph + NetworkX execution graph."""
 
-    def __init__(self, rdf: Graph, nx_graph: nx.DiGraph, object_properties: Set[str]):
+    def __init__(self, rdf: Graph, nx_graph: nx.MultiDiGraph, object_properties: Set[str]):
         self.rdf = rdf
         self.G = nx_graph
         self.object_properties = object_properties
@@ -47,8 +47,11 @@ class ShopifyGraph:
             return []
         out: List[str] = []
         for v in self.G.successors(node_uri):
-            rel = self.G[node_uri][v].get("relation")
-            if relation is None or rel == relation:
+            if relation is None:
+                out.append(v)
+                continue
+            edge_bundle = self.G.get_edge_data(node_uri, v) or {}
+            if any(data.get("relation") == relation for data in edge_bundle.values()):
                 out.append(v)
         return out
 
@@ -57,8 +60,11 @@ class ShopifyGraph:
             return []
         out: List[str] = []
         for u in self.G.predecessors(node_uri):
-            rel = self.G[u][node_uri].get("relation")
-            if relation is None or rel == relation:
+            if relation is None:
+                out.append(u)
+                continue
+            edge_bundle = self.G.get_edge_data(u, node_uri) or {}
+            if any(data.get("relation") == relation for data in edge_bundle.values()):
                 out.append(u)
         return out
 

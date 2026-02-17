@@ -7,7 +7,7 @@ import networkx as nx
 from core.models import BlastRadiusResults, Direction, TraversalSpec
 
 
-def _neighbors(G: nx.DiGraph, node: str, direction: Direction) -> Iterable[str]:
+def _neighbors(G: nx.MultiDiGraph, node: str, direction: Direction) -> Iterable[str]:
     if direction == "out":
         return sorted(G.successors(node))
     if direction == "in":
@@ -17,7 +17,7 @@ def _neighbors(G: nx.DiGraph, node: str, direction: Direction) -> Iterable[str]:
 
 
 def blast_radius_paths(
-    G: nx.DiGraph,
+    G: nx.MultiDiGraph,
     start: str,
     traversalSpec: TraversalSpec
 ) -> BlastRadiusResults:
