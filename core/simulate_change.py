@@ -76,7 +76,7 @@ def simulate_change(
     simulated_set = _impacted_set(simulated_report)
 
     newly_impacted = sorted(simulated_set - baseline_set)
-    no_longer_impacted = sorted(baseline_set - simulated_set)
+    removed_impacts = sorted(baseline_set - simulated_set)
 
     delta_counts = _diff_counts_by_type(
         baseline_report.summary.counts_by_type,
@@ -88,7 +88,7 @@ def simulate_change(
         total_impacted_simulated=simulated_report.summary.total_impacted,
         delta_counts_by_type=delta_counts,
         newly_impacted=newly_impacted,
-        no_longer_impacted=no_longer_impacted,
+        removed_impacts=removed_impacts,
     )
 
     return ScenarioResult(

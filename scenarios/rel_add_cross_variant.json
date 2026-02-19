@@ -1,0 +1,14 @@
+{
+  "scenario_id": "rel_add_cross_variant",
+  "description": "Add hasVariant from prod_mug to var_hoodie_s to expand reach.",
+  "attribute_overrides": [],
+  "edge_mutations": [
+    {
+      "op": "add",
+      "src_uri": "https://example.com/shopify-inst#prod_mug",
+      "dst_uri": "https://example.com/shopify-inst#var_hoodie_s",
+      "relation": "hasVariant",
+      "predicate_uri": "https://example.com/shopify-onto#hasVariant"
+    }
+  ]
+}

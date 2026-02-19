@@ -1,0 +1,13 @@
+{
+  "scenario_id": "rel_remove_mug_variant",
+  "description": "Remove existing hasVariant edge from prod_mug to var_mug_white to shrink reach.",
+  "attribute_overrides": [],
+  "edge_mutations": [
+    {
+      "op": "remove",
+      "src_uri": "https://example.com/shopify-inst#prod_mug",
+      "dst_uri": "https://example.com/shopify-inst#var_mug_white",
+      "relation": "hasVariant"
+    }
+  ]
+}

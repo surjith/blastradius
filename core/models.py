@@ -152,7 +152,7 @@ class ScenarioDeltaSummary(BaseModel):
     High-level diff summary between baseline and simulated outcomes.
 
     Determinism:
-    - newly_impacted / no_longer_impacted are sorted for stable output.
+    - newly_impacted / removed_impacts are sorted for stable output.
     """
     total_impacted_baseline: int
     total_impacted_simulated: int
@@ -160,9 +160,9 @@ class ScenarioDeltaSummary(BaseModel):
     delta_counts_by_type: Dict[str, int] = Field(default_factory=dict)
 
     newly_impacted: List[str] = Field(default_factory=list)
-    no_longer_impacted: List[str] = Field(default_factory=list)
+    removed_impacts: List[str] = Field(default_factory=list)
 
-    @field_validator("newly_impacted", "no_longer_impacted", mode="after")
+    @field_validator("newly_impacted", "removed_impacts", mode="after")
     @classmethod
     def _sort_uri_lists(cls, v: List[str]) -> List[str]:
         return sorted(v)

@@ -1,0 +1,14 @@
+{
+  "scenario_id": "schema_remove_metafield_link",
+  "description": "Simulate schema/contract change by removing Product->Metafield linkage.",
+  "attribute_overrides": [],
+  "edge_mutations": [
+    {
+      "op": "remove",
+      "src_uri": "https://example.com/shopify-inst#prod_mug",
+      "dst_uri": "https://example.com/shopify-inst#mf_prod_mug_campaign",
+      "relation": "hasMetafield",
+      "predicate_uri": "https://example.com/shopify-onto#hasMetafield"
+    }
+  ]
+}

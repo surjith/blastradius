@@ -142,6 +142,8 @@ def _apply_edge_mutation(
 def apply_scenario_to_graph(
     baseline_graph: nx.MultiDiGraph,
     scenario: ScenarioSpec,
+    *,
+    strict: bool = False,
 ) -> ScenarioApplied:
     """
     Apply ScenarioSpec to a baseline NetworkX graph.
@@ -151,6 +153,9 @@ def apply_scenario_to_graph(
     - Apply attribute overrides
     - Apply edge mutations
     - Return simulated graph + audit counters
+
+    strict:
+      - If True, raise if any scenario operation is skipped (missing node, no-op, missing edge, etc.)
     """
     scenario_graph = baseline_graph.copy()
 
@@ -188,7 +193,7 @@ def apply_scenario_to_graph(
         if reason:
             audit_log.append(reason)
 
-    return ScenarioApplied(
+    applied = ScenarioApplied(
         nx_graph=scenario_graph,
         applied_attribute_overrides=applied_attribute_overrides,
         skipped_attribute_overrides=skipped_attribute_overrides,
@@ -198,3 +203,40 @@ def apply_scenario_to_graph(
         skipped_edge_removes=skipped_edge_removes,
         audit_log=audit_log,
     )
+
+    if strict and (
+        applied.skipped_attribute_overrides > 0
+        or applied.skipped_edge_adds > 0
+        or applied.skipped_edge_removes > 0
+    ):
+        raise ValueError("Strict scenario mode: one or more scenario operations were skipped")
+
+    return applied
+
+def _remove_matching_edges(
+    G: "nx.MultiDiGraph",
+    src: str,
+    dst: str,
+    relation: str,
+    predicate_uri: str | None = None,
+) -> int:
+    """
+    Remove all edges src->dst whose edge data matches relation (and predicate_uri if provided).
+    Returns number of edges removed.
+    """
+    edge_data = G.get_edge_data(src, dst)  # dict[key -> data] or None
+    if not edge_data:
+        return 0
+
+    to_remove: list[int] = []
+    for k, d in edge_data.items():
+        if d.get("relation") != relation:
+            continue
+        if predicate_uri is not None and d.get("predicate_uri") != predicate_uri:
+            continue
+        to_remove.append(k)
+
+    for k in to_remove:
+        G.remove_edge(src, dst, key=k)
+
+    return len(to_remove)

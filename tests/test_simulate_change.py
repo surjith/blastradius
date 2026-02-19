@@ -188,7 +188,7 @@ def test_simulate_change_builds_delta_and_forwards_strict(monkeypatch):
     assert calls["apply_args"] == ("baseline_nx", scenario, True)
     assert calls["shopify_graph_ctor"] == ("baseline_rdf", "scenario_nx", {"p1", "p2"})
     assert result.delta.newly_impacted == ["urn:c"]
-    assert result.delta.no_longer_impacted == ["urn:a"]
+    assert result.delta.removed_impacts == ["urn:a"]
     assert result.delta.delta_counts_by_type == {"Metafield": 1, "Product": -1}
 
 
@@ -239,7 +239,7 @@ def test_simulate_change_deterministic_integration(shopify_graph, simulate_chang
     assert r1.baseline.impacted_uris == r2.baseline.impacted_uris
     assert r1.simulated.impacted_uris == r2.simulated.impacted_uris
     assert r1.delta.newly_impacted == r2.delta.newly_impacted
-    assert r1.delta.no_longer_impacted == r2.delta.no_longer_impacted
+    assert r1.delta.removed_impacts == r2.delta.removed_impacts
     assert r1.delta.delta_counts_by_type == r2.delta.delta_counts_by_type
 
 
