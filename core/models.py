@@ -68,6 +68,7 @@ class ImpactReport(BaseModel):
     traversal: TraversalSpec
     summary: ImpactSummary
     top_impacts: List[ImpactItem] = Field(default_factory=list)
+    impacted_uris: List[str] = Field(default_factory=list)
 
 
 #-----------What if / scenario analysis models -----------

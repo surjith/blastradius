@@ -15,7 +15,7 @@ class ShopifyGraph:
 
     def __init__(self, rdf: Graph, nx_graph: nx.MultiDiGraph, object_properties: Set[str]):
         self.rdf = rdf
-        self.G = nx_graph
+        self.nx_graph = nx_graph
         self.object_properties = object_properties
 
     @classmethod
@@ -35,35 +35,35 @@ class ShopifyGraph:
 
     # ---- NX helpers ----
     def node_exists(self, node_uri: str) -> bool:
-        return node_uri in self.G
+        return node_uri in self.nx_graph
 
     def get_node_data(self, node_uri: str) -> Dict:
-        if node_uri not in self.G:
+        if node_uri not in self.nx_graph:
             return {}
-        return dict(self.G.nodes[node_uri])
+        return dict(self.nx_graph.nodes[node_uri])
 
     def successors(self, node_uri: str, relation: Optional[str] = None) -> List[str]:
-        if node_uri not in self.G:
+        if node_uri not in self.nx_graph:
             return []
         out: List[str] = []
-        for v in self.G.successors(node_uri):
+        for v in self.nx_graph.successors(node_uri):
             if relation is None:
                 out.append(v)
                 continue
-            edge_bundle = self.G.get_edge_data(node_uri, v) or {}
+            edge_bundle = self.nx_graph.get_edge_data(node_uri, v) or {}
             if any(data.get("relation") == relation for data in edge_bundle.values()):
                 out.append(v)
         return out
 
     def predecessors(self, node_uri: str, relation: Optional[str] = None) -> List[str]:
-        if node_uri not in self.G:
+        if node_uri not in self.nx_graph:
             return []
         out: List[str] = []
-        for u in self.G.predecessors(node_uri):
+        for u in self.nx_graph.predecessors(node_uri):
             if relation is None:
                 out.append(u)
                 continue
-            edge_bundle = self.G.get_edge_data(u, node_uri) or {}
+            edge_bundle = self.nx_graph.get_edge_data(u, node_uri) or {}
             if any(data.get("relation") == relation for data in edge_bundle.values()):
                 out.append(u)
         return out
@@ -72,7 +72,7 @@ class ShopifyGraph:
         """Exact match over node attributes (e.g., name/status)."""
         target = value.strip().lower()
         matches: List[str] = []
-        for n, data in self.G.nodes(data=True):
+        for n, data in self.nx_graph.nodes(data=True):
             if str(data.get(key, "")).strip().lower() == target:
                 matches.append(n)
         return matches

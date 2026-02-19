@@ -27,7 +27,7 @@ def blast(
     sg = ShopifyGraph.from_ttl(ontology, instances)
     traversal = TraversalSpec(depth=depth, direction=direction, max_results=max_results)
 
-    res = blast_radius_paths(sg.G, start=start, traversal=traversal)
+    res = blast_radius_paths(sg.nx_graph, start=start, traversal=traversal)
 
     if as_json:
         typer.echo(res.model_dump_json(indent=2))
