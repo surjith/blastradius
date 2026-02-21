@@ -1,6 +1,7 @@
 import networkx as nx
+import pytest
 
-from core.models import EdgeMutation, ScenarioSpec
+from core.models import AttributeOverride, EdgeMutation, ScenarioSpec
 from core.scenario import apply_scenario_to_graph
 
 
@@ -80,3 +81,76 @@ def test_scenario_remove_missing_relation_skips_with_audit(nx_graph):
     assert applied.applied_edge_removes == 0
     assert applied.skipped_edge_removes == 1
     assert any("no matching edge" in msg for msg in applied.audit_log)
+
+
+def test_scenario_remove_deletes_all_matching_parallel_edges():
+    G = nx.MultiDiGraph()
+    src = "urn:src"
+    dst = "urn:dst"
+    pred = "https://example.com/p#hasVariant"
+    G.add_edge(src, dst, key="k1", relation="hasVariant", predicate_uri=pred)
+    G.add_edge(src, dst, key="k2", relation="hasVariant", predicate_uri=pred)
+    G.add_edge(src, dst, key="k3", relation="otherRelation", predicate_uri="https://example.com/p#other")
+
+    scenario = ScenarioSpec(
+        scenario_id="remove_all_matches",
+        edge_mutations=[
+            EdgeMutation(
+                op="remove",
+                src_uri=src,
+                dst_uri=dst,
+                relation="hasVariant",
+                predicate_uri=pred,
+            )
+        ],
+    )
+
+    applied = apply_scenario_to_graph(G, scenario)
+    bundle = applied.nx_graph.get_edge_data(src, dst) or {}
+    remaining_relations = {d.get("relation") for d in bundle.values()}
+
+    assert applied.applied_edge_removes == 2
+    assert applied.skipped_edge_removes == 0
+    assert "hasVariant" not in remaining_relations
+    assert "otherRelation" in remaining_relations
+
+
+def test_scenario_attribute_override_counts_and_audit():
+    G = nx.MultiDiGraph()
+    G.add_node("urn:ok", uri="urn:ok", status="active")
+
+    scenario = ScenarioSpec(
+        scenario_id="attr_counts",
+        attribute_overrides=[
+            AttributeOverride(op="set", node_uri="urn:ok", key="status", value="outage"),
+            AttributeOverride(op="set", node_uri="urn:missing", key="status", value="outage"),
+            AttributeOverride(op="unset", node_uri="urn:ok", key="nonexistent"),
+        ],
+    )
+
+    applied = apply_scenario_to_graph(G, scenario)
+
+    assert applied.applied_attribute_overrides == 1
+    assert applied.skipped_attribute_overrides == 2
+    assert applied.nx_graph.nodes["urn:ok"]["status"] == "outage"
+    assert len(applied.audit_log) >= 2
+    assert any("missing node" in msg for msg in applied.audit_log)
+    assert any("absent on node" in msg for msg in applied.audit_log)
+
+
+def test_scenario_strict_mode_raises_on_skip(nx_graph):
+    u, v, _, _ = _pick_any_edge_with_data(nx_graph)
+    scenario = ScenarioSpec(
+        scenario_id="strict_skip",
+        edge_mutations=[
+            EdgeMutation(
+                op="remove",
+                src_uri=u,
+                dst_uri=v,
+                relation="__nonexistent_relation__",
+            )
+        ],
+    )
+
+    with pytest.raises(ValueError, match="Strict scenario mode"):
+        apply_scenario_to_graph(nx_graph, scenario, strict=True)

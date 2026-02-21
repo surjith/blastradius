@@ -1,0 +1,27 @@
+{
+  "scenario_id": "outage_reroute_fulfillment",
+  "description": "Warehouse outage: fulfillment no longer fulfilledFrom Sydney, rerouted to Melbourne.",
+  "attribute_overrides": [
+    {
+      "node_uri": "https://example.com/shopify-inst#loc_syd_01",
+      "key": "status",
+      "op": "set",
+      "value": "outage"
+    }
+  ],
+  "edge_mutations": [
+    {
+      "op": "remove",
+      "src_uri": "https://example.com/shopify-inst#ful_9001_1",
+      "dst_uri": "https://example.com/shopify-inst#loc_syd_01",
+      "relation": "fulfilledFrom"
+    },
+    {
+      "op": "add",
+      "src_uri": "https://example.com/shopify-inst#ful_9001_1",
+      "dst_uri": "https://example.com/shopify-inst#loc_mel_01",
+      "relation": "fulfilledFrom",
+      "predicate_uri": "https://example.com/shopify-onto#fulfilledFrom"
+    }
+  ]
+}

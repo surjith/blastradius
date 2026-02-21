@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import Hashable, List, Optional, Tuple
 
 import networkx as nx
 from pydantic import BaseModel, ConfigDict, Field
@@ -78,15 +78,18 @@ def _edge_bundle(
 def _find_matching_edge_key(
     scenario_graph: nx.MultiDiGraph,
     mutation: EdgeMutation,
-) -> Optional[str]:
+) -> Hashable | None:
     bundle = _edge_bundle(scenario_graph, mutation.src_uri, mutation.dst_uri)
-    for key in sorted(bundle.keys()):
+
+    # Deterministic ordering even if keys are int/str mixed
+    for key in sorted(bundle.keys(), key=lambda k: str(k)):
         data = bundle[key] or {}
         if data.get("relation") != mutation.relation:
             continue
         if mutation.predicate_uri is not None and data.get("predicate_uri") != mutation.predicate_uri:
             continue
         return key
+
     return None
 
 
@@ -98,13 +101,31 @@ def _apply_edge_mutation(
     """
     Apply a single EdgeMutation.
     Returns (adds, removes, reason_if_skipped).
+
+    MultiDiGraph-safe + deterministic:
+    - ADD: skips if an identical edge (relation + predicate_uri) already exists
+    - REMOVE: removes *all* matching edges (relation + predicate_uri if provided)
     """
+    # Helper: match edge data
+    def _matches(data: dict) -> bool:
+        if data.get("relation") != mutation.relation:
+            return False
+        if mutation.predicate_uri is not None and data.get("predicate_uri") != mutation.predicate_uri:
+            return False
+        return True
+
     if mutation.op == "add":
         _ensure_node_exists(scenario_graph, mutation.src_uri)
         _ensure_node_exists(scenario_graph, mutation.dst_uri)
-        if _find_matching_edge_key(scenario_graph, mutation) is not None:
-            return (0, 0, "edge add skipped: identical edge already exists")
 
+        # Skip if identical edge already exists (any key, including int keys from baseline)
+        bundle = _edge_bundle(scenario_graph, mutation.src_uri, mutation.dst_uri)
+        for k in sorted(bundle.keys(), key=lambda x: str(x)):
+            data = bundle[k] or {}
+            if _matches(data):
+                return (0, 0, "edge add skipped: identical edge already exists")
+
+        # Deterministic key generation (string keys for scenario-added edges)
         key_prefix = mutation.predicate_uri or mutation.relation
         key = f"{key_prefix}:{scenario_id}:0"
         suffix = 1
@@ -120,23 +141,31 @@ def _apply_edge_mutation(
             predicate_uri=mutation.predicate_uri,
             scenario_id=scenario_id,
         )
-
         return (1, 0, None)
 
-    # remove
-    matching_key = _find_matching_edge_key(scenario_graph, mutation)
-    if matching_key is None:
-        if scenario_graph.has_edge(mutation.src_uri, mutation.dst_uri):
-            return (
-                0,
-                0,
-                "edge remove skipped: no matching edge for "
-                f'"{mutation.src_uri}" -> "{mutation.dst_uri}" '
-                f'with relation="{mutation.relation}"',
-            )
+    # REMOVE: delete all matching edges between src->dst (handles multi-edges properly)
+    bundle = _edge_bundle(scenario_graph, mutation.src_uri, mutation.dst_uri)
+    if not bundle:
         return (0, 0, "edge remove skipped: edge does not exist")
-    scenario_graph.remove_edge(mutation.src_uri, mutation.dst_uri, key=matching_key)
-    return (0, 1, None)
+
+    keys_to_remove = [
+        k for k in sorted(bundle.keys(), key=lambda x: str(x))
+        if _matches(bundle[k] or {})
+    ]
+
+    if not keys_to_remove:
+        return (
+            0,
+            0,
+            "edge remove skipped: no matching edge for "
+            f'"{mutation.src_uri}" -> "{mutation.dst_uri}" '
+            f'with relation="{mutation.relation}"',
+        )
+
+    for k in keys_to_remove:
+        scenario_graph.remove_edge(mutation.src_uri, mutation.dst_uri, key=k)
+
+    return (0, len(keys_to_remove), None)
 
 
 def apply_scenario_to_graph(
@@ -214,21 +243,17 @@ def apply_scenario_to_graph(
     return applied
 
 def _remove_matching_edges(
-    G: "nx.MultiDiGraph",
+    G: nx.MultiDiGraph,
     src: str,
     dst: str,
     relation: str,
     predicate_uri: str | None = None,
 ) -> int:
-    """
-    Remove all edges src->dst whose edge data matches relation (and predicate_uri if provided).
-    Returns number of edges removed.
-    """
-    edge_data = G.get_edge_data(src, dst)  # dict[key -> data] or None
+    edge_data = G.get_edge_data(src, dst) or {}
     if not edge_data:
         return 0
 
-    to_remove: list[int] = []
+    to_remove: list[Hashable] = []
     for k, d in edge_data.items():
         if d.get("relation") != relation:
             continue
