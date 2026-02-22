@@ -1,0 +1,14 @@
+{
+  "scenario_id": "a_remove_variant",
+  "description": "Remove prod_mug -> var_mug_white (hasVariant).",
+  "attribute_overrides": [],
+  "edge_mutations": [
+    {
+      "op": "remove",
+      "src_uri": "https://example.com/shopify-inst#prod_mug",
+      "dst_uri": "https://example.com/shopify-inst#var_mug_white",
+      "relation": "hasVariant",
+      "predicate_uri": "https://example.com/shopify-onto#hasVariant"
+    }
+  ]
+}

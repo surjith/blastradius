@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import networkx as nx
 import typer
 
 from core.shopify_graph import ShopifyGraph
@@ -16,6 +17,8 @@ from core.models import (
 from core.impact import blast_radius_paths
 from core.impact_analysis import analyze_change
 from core.simulate_change import simulate_change
+from core.scenario import apply_scenario_to_graph
+from core.nx_builder import local_name
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -46,6 +49,133 @@ def _print_counts(title: str, counts: dict[str, int]) -> None:
         typer.echo(f"  {t}: {c}")
 
 
+def _require_pyvis():
+    try:
+        from pyvis.network import Network
+    except ImportError as e:
+        raise typer.BadParameter(
+            "pyvis is required for visualize. Install with: uv add pyvis"
+        ) from e
+    return Network
+
+
+def _node_label(uri: str) -> str:
+    return local_name(uri)
+
+
+def _node_color(status: str) -> str:
+    s = str(status or "").strip().lower()
+    if s in {"outage", "failed"}:
+        return "#e74c3c"
+    if s in {"pending", "processing", "unfulfilled"}:
+        return "#f39c12"
+    return "#3498db"
+
+
+def _render_graph_html(
+    G: nx.MultiDiGraph,
+    out_path: Path,
+    title: str,
+) -> None:
+    Network = _require_pyvis()
+    net = Network(height="820px", width="100%", directed=True, notebook=False)
+    net.barnes_hut()
+
+    for n, data in G.nodes(data=True):
+        label = _node_label(str(n))
+        node_type = data.get("type", "")
+        status = data.get("status", "")
+        tooltip = (
+            f"uri: {n}<br>"
+            f"type: {node_type}<br>"
+            f"status: {status}"
+        )
+        net.add_node(
+            str(n),
+            label=label,
+            title=tooltip,
+            color=_node_color(str(status)),
+        )
+
+    for u, v, _k, data in G.edges(keys=True, data=True):
+        relation = str(data.get("relation", "edge"))
+        edge_color = "#e67e22" if data.get("scenario_id") else "#95a5a6"
+        net.add_edge(
+            str(u),
+            str(v),
+            label=relation,
+            title=str(data.get("predicate_uri", relation)),
+            arrows="to",
+            color=edge_color,
+        )
+
+    net.set_options(
+        """
+        {
+          "edges": { "smooth": false, "font": { "size": 10 } },
+          "nodes": { "shape": "dot", "size": 12, "font": { "size": 12 } },
+          "physics": { "stabilization": true }
+        }
+        """
+    )
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    net.write_html(str(out_path), open_browser=False)
+
+
+def _write_compare_html(compare_path: Path, baseline_name: str, simulated_name: str) -> None:
+    html = f"""<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blast Radius Graph Compare</title>
+  <style>
+    body {{ margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }}
+    .wrap {{ display: flex; gap: 10px; height: 100vh; padding: 10px; box-sizing: border-box; }}
+    .panel {{ flex: 1; min-width: 0; display: flex; flex-direction: column; }}
+    h3 {{ margin: 0 0 8px 0; font-size: 14px; }}
+    iframe {{ flex: 1; border: 1px solid #d0d7de; border-radius: 8px; }}
+    @media (max-width: 960px) {{
+      .wrap {{ flex-direction: column; height: auto; }}
+      iframe {{ min-height: 60vh; }}
+    }}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <h3>Baseline</h3>
+      <iframe src="{baseline_name}"></iframe>
+    </div>
+    <div class="panel">
+      <h3>Simulated</h3>
+      <iframe src="{simulated_name}"></iframe>
+    </div>
+  </div>
+</body>
+</html>
+"""
+    compare_path.write_text(html, encoding="utf-8")
+
+
+def _focused_subgraph(
+    G: nx.MultiDiGraph,
+    start: str,
+    traversal: TraversalSpec,
+) -> nx.MultiDiGraph:
+    blast = blast_radius_paths(G, start=start, traversalSpec=traversal)
+    nodes = set(blast.reached)
+    nodes.add(start)
+    return G.subgraph(nodes).copy()
+
+def _print_top_impacts(label: str, report) -> None:
+    typer.echo(f"\n--- TOP IMPACTS ({label}) ---")
+    for item in report.top_impacts:
+        typer.echo(f"- severity={item.severity} | type={item.entity_type}")
+        typer.echo(f"  uri: {item.uri}")
+        typer.echo(f"  path: {' -> '.join(item.primary_path)}")
+
+
 @app.command()
 def blast(
     start: str = typer.Option(..., help="Start node URI"),
@@ -59,7 +189,7 @@ def blast(
     sg = ShopifyGraph.from_ttl(ontology, instances)
     traversal = TraversalSpec(depth=depth, direction=direction, max_results=max_results)
 
-    res = blast_radius_paths(sg.nx_graph, start=start, traversal=traversal)
+    res = blast_radius_paths(sg.nx_graph, start=start, traversalSpec=traversal)
 
     if as_json:
         typer.echo(res.model_dump_json(indent=2))
@@ -158,6 +288,7 @@ def simulate(
     top_n: int = typer.Option(10, help="How many top impacts to show"),
     scenario_json: Path = typer.Option(..., "--scenario-json", help="ScenarioSpec JSON file"),
     strict: bool = typer.Option(False, help="Strict scenario application mode"),
+    show_top: bool = typer.Option(True, "--show-top/--no-show-top", help="Show top impacts for baseline and simulated"),
     validate: bool = typer.Option(True, "--validate/--no-validate", help="Validate report invariants"),
     ontology: Path = typer.Option(DEFAULT_ONTO, exists=True),
     instances: Path = typer.Option(DEFAULT_INST, exists=True),
@@ -227,6 +358,11 @@ def simulate(
     typer.echo(f"No longer impacted: {len(result.delta.removed_impacts)}")
     _print_counts("Delta counts by type:", result.delta.delta_counts_by_type)
 
+    if show_top:
+        _print_top_impacts("BASELINE", result.baseline)
+        _print_top_impacts("SIMULATED", result.simulated)
+
+
     if result.delta.newly_impacted:
         typer.echo("\nNewly impacted URIs:")
         for u in result.delta.newly_impacted[:50]:
@@ -240,6 +376,69 @@ def simulate(
             typer.echo(f"- {u}")
         if len(result.delta.removed_impacts) > 50:
             typer.echo(f"... ({len(result.delta.removed_impacts) - 50} more)")
+
+
+@app.command()
+def visualize(
+    scenario_json: Path = typer.Option(..., "--scenario-json", help="ScenarioSpec JSON file"),
+    ontology: Path = typer.Option(DEFAULT_ONTO, exists=True),
+    instances: Path = typer.Option(DEFAULT_INST, exists=True),
+    out_dir: Path = typer.Option(Path("artifacts/graph_viz"), help="Output directory for HTML files"),
+    compare_file: str = typer.Option("compare.html", help="Output compare HTML filename"),
+    baseline_file: str = typer.Option("baseline.html", help="Baseline graph HTML filename"),
+    simulated_file: str = typer.Option("simulated.html", help="Simulated graph HTML filename"),
+    strict: bool = typer.Option(False, help="Strict scenario application mode"),
+    focus_start: str = typer.Option(None, "--focus-start", help="Optional start URI to visualize local neighborhood"),
+    depth: int = typer.Option(2, help="Focus traversal depth (used only with --focus-start)"),
+    direction: Direction = typer.Option("both", help="Focus traversal direction"),
+    max_results: int = typer.Option(200, help="Focus traversal safety cutoff"),
+):
+    """
+    Generate side-by-side HTML visualization for baseline vs simulated graphs.
+    """
+    # Fail fast with a clear install instruction if dependency is missing.
+    _require_pyvis()
+
+    sg = ShopifyGraph.from_ttl(ontology, instances)
+    scenario = _load_scenario(scenario_json)
+    applied = apply_scenario_to_graph(sg.nx_graph, scenario, strict=strict)
+
+    baseline_graph = sg.nx_graph
+    simulated_graph = applied.nx_graph
+
+    if focus_start:
+        traversal = TraversalSpec(
+            depth=depth,
+            direction=direction,
+            max_results=max_results,
+            top_n=10,
+        )
+        baseline_graph = _focused_subgraph(baseline_graph, focus_start, traversal)
+        simulated_graph = _focused_subgraph(simulated_graph, focus_start, traversal)
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    baseline_path = out_dir / baseline_file
+    simulated_path = out_dir / simulated_file
+    compare_path = out_dir / compare_file
+
+    _render_graph_html(baseline_graph, baseline_path, "Baseline")
+    _render_graph_html(simulated_graph, simulated_path, "Simulated")
+    _write_compare_html(compare_path, baseline_file, simulated_file)
+
+    typer.echo("\n=== GRAPH VISUALIZATION ===")
+    typer.echo(f"Scenario: {scenario.scenario_id}")
+    typer.echo(f"Baseline HTML: {baseline_path}")
+    typer.echo(f"Simulated HTML: {simulated_path}")
+    typer.echo(f"Compare HTML: {compare_path}")
+    typer.echo(
+        "Scenario apply summary: "
+        f"attr_applied={applied.applied_attribute_overrides}, "
+        f"attr_skipped={applied.skipped_attribute_overrides}, "
+        f"edge_adds={applied.applied_edge_adds}, "
+        f"edge_adds_skipped={applied.skipped_edge_adds}, "
+        f"edge_removes={applied.applied_edge_removes}, "
+        f"edge_removes_skipped={applied.skipped_edge_removes}"
+    )
 
 
 if __name__ == "__main__":
