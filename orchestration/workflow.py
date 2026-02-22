@@ -156,8 +156,7 @@ class WorkflowBuilder:
         except Exception as e:
             return {"error": f"Simulate failed: {e}"}
 
-    @staticmethod
-    def format_node(state: AgentState) -> dict[str, Any]:
+    def format_node(self, state: AgentState) -> dict[str, Any]:
         if state.get("response"):
             return {}
         if state.get("error"):
@@ -175,11 +174,11 @@ class WorkflowBuilder:
 
         try:
             if intent == "blast":
-                return {"response": format_blast(BlastRadiusResults.model_validate(res_dict))}
+                return {"response": format_blast(BlastRadiusResults.model_validate(res_dict), graph=self._graph)}
             if intent == "impact":
-                return {"response": format_impact(ImpactReport.model_validate(res_dict))}
+                return {"response": format_impact(ImpactReport.model_validate(res_dict), graph=self._graph)}
             if intent == "simulate":
-                return {"response": format_simulation(ScenarioResult.model_validate(res_dict))}
+                return {"response": format_simulation(ScenarioResult.model_validate(res_dict), graph=self._graph)}
             return {"response": "help: provide a JSON envelope with intent=blast|impact|simulate"}
         except Exception as e:
             return {"response": f"Formatting failed: {e}"}

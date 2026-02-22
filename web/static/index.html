@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blast Radius — Demo</title>
+<link rel="stylesheet" href="/lib/vis-9.1.2/vis-network.css">
+<style>
+  /* ── Reset & base ───────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0f1117;
+    color: #e0e0e0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ─────────────────────────────────────────────── */
+  header {
+    background: #1a1d2e;
+    border-bottom: 1px solid #2d2f45;
+    padding: 0 20px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 17px; font-weight: 600; color: #fff; letter-spacing: .3px; }
+  header .subtitle { font-size: 12px; color: #7f8c8d; }
+  header .badge {
+    margin-left: auto;
+    background: #2ecc71;
+    color: #0f1117;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    letter-spacing: .5px;
+  }
+  header .badge.loading { background: #f39c12; }
+
+  /* ── Main layout ─────────────────────────────────────────── */
+  .layout {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 230px 1fr 360px;
+    grid-template-rows: 1fr;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ─────────────────────────────────────────────── */
+  .sidebar {
+    background: #141622;
+    border-right: 1px solid #2d2f45;
+    overflow-y: auto;
+    padding: 12px 0;
+    min-height: 0;
+  }
+  .sidebar-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: #5d6494;
+    padding: 0 14px 8px;
+    text-transform: uppercase;
+  }
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s;
+  }
+  .group-header:hover { background: #1e2135; }
+  .group-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .group-name { font-size: 13px; font-weight: 600; flex: 1; }
+  .group-count {
+    font-size: 11px;
+    color: #5d6494;
+    background: #1e2135;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+  .group-arrow { font-size: 10px; color: #5d6494; transition: transform .2s; }
+  .group-arrow.open { transform: rotate(90deg); }
+  .group-items { display: none; }
+  .group-items.open { display: block; }
+  .entity-card {
+    padding: 6px 14px 6px 36px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: background .15s, border-color .15s;
+  }
+  .entity-card:hover { background: #1e2135; }
+  .entity-card.selected {
+    background: #1e2135;
+    border-left-color: #f1c40f;
+  }
+  .entity-card .name { font-size: 12px; font-weight: 500; color: #d0d3e8; }
+  .entity-card .detail { font-size: 10px; color: #5d6494; margin-top: 1px; }
+
+  /* ── Graph pane ──────────────────────────────────────────── */
+  .graph-pane {
+    position: relative;
+    background: #0f1117;
+    min-height: 0;
+    overflow: hidden;
+  }
+  #network { width: 100%; height: 100%; display: block; }
+  .graph-toolbar {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+  }
+  .btn {
+    background: #1a1d2e;
+    border: 1px solid #2d2f45;
+    color: #c0c3d8;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .btn:hover { background: #2d2f45; color: #fff; }
+  .btn.primary { background: #3498db; border-color: #3498db; color: #fff; }
+  .btn.primary:hover { background: #2980b9; }
+
+  .graph-legend {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    background: rgba(20,22,34,.9);
+    border: 1px solid #2d2f45;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    z-index: 10;
+  }
+  .graph-legend .legend-title { color: #5d6494; font-weight: 600; margin-bottom: 6px; letter-spacing: .8px; text-transform: uppercase; font-size: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── Chat panel ──────────────────────────────────────────── */
+  .chat-panel {
+    background: #141622;
+    border-left: 1px solid #2d2f45;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .chat-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #2d2f45;
+    flex-shrink: 0;
+  }
+  .chat-header h2 { font-size: 14px; font-weight: 600; color: #fff; }
+  .chat-header p { font-size: 11px; color: #5d6494; margin-top: 2px; }
+
+  .templates {
+    padding: 10px 12px;
+    border-bottom: 1px solid #2d2f45;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .tpl-btn {
+    background: #1e2135;
+    border: 1px solid #2d2f45;
+    color: #a0a4c0;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  .tpl-btn:hover { background: #2d2f45; color: #fff; border-color: #3d4060; }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 14px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .msg { max-width: 92%; display: flex; flex-direction: column; gap: 3px; }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.assistant { align-self: flex-start; align-items: flex-start; }
+
+  .msg-label { font-size: 10px; color: #5d6494; letter-spacing: .5px; }
+
+  .msg-bubble {
+    padding: 9px 13px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.user .msg-bubble { background: #3498db; color: #fff; border-bottom-right-radius: 3px; }
+  .msg.assistant .msg-bubble { background: #1e2135; color: #d0d3e8; border-bottom-left-radius: 3px; }
+  .msg.assistant .msg-bubble.error { background: #2d1a1a; color: #e74c3c; }
+  .msg.assistant .msg-bubble.thinking { color: #5d6494; font-style: italic; }
+
+  .highlight-info {
+    font-size: 11px;
+    color: #5d6494;
+    padding: 3px 6px;
+    background: #1a1d2e;
+    border-radius: 4px;
+    border-left: 3px solid #f1c40f;
+    margin-top: 4px;
+  }
+
+  .chat-input-row {
+    padding: 12px;
+    border-top: 1px solid #2d2f45;
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    background: #141622;
+  }
+  #chat-input {
+    flex: 1;
+    background: #1e2135;
+    border: 1px solid #2d2f45;
+    color: #e0e0e0;
+    font-size: 13px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    transition: border-color .2s;
+    min-height: 38px;
+    max-height: 120px;
+  }
+  #chat-input:focus { border-color: #3498db; }
+  #send-btn {
+    background: #3498db;
+    border: none;
+    color: #fff;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s;
+    flex-shrink: 0;
+  }
+  #send-btn:hover { background: #2980b9; }
+  #send-btn:disabled { background: #2d2f45; cursor: not-allowed; }
+
+  /* ── Node info tooltip ───────────────────────────────────── */
+  #node-info {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: rgba(20,22,34,.95);
+    border: 1px solid #2d2f45;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12px;
+    max-width: 240px;
+    z-index: 10;
+    display: none;
+  }
+  #node-info .ni-title { font-weight: 700; color: #fff; margin-bottom: 6px; border-bottom: 1px solid #2d2f45; padding-bottom: 6px; }
+  #node-info .ni-row { display: flex; gap: 8px; margin-bottom: 3px; }
+  #node-info .ni-key { color: #5d6494; flex-shrink: 0; min-width: 60px; }
+  #node-info .ni-val { color: #d0d3e8; word-break: break-all; }
+
+  /* ── Scrollbars ──────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2d2f45; border-radius: 10px; }
+
+  /* ── Welcome message ─────────────────────────────────────── */
+  .welcome {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: #5d6494;
+    font-size: 12px;
+    text-align: center;
+    padding: 20px;
+  }
+  .welcome .icon { font-size: 32px; }
+  .welcome strong { color: #a0a4c0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>💥</div>
+  <h1>Blast Radius</h1>
+  <span class="subtitle">Shopify Graph Impact Explorer</span>
+  <span class="badge loading" id="status-badge">Loading…</span>
+</header>
+
+<div class="layout">
+
+  <!-- ── Sidebar ──────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-title">Entities</div>
+    <div id="entity-list">
+      <div style="padding: 20px 14px; color: #5d6494; font-size: 12px;">Loading entities…</div>
+    </div>
+  </aside>
+
+  <!-- ── Graph ─────────────────────────────────────────────── -->
+  <div class="graph-pane">
+    <div class="graph-toolbar">
+      <button class="btn" onclick="resetHighlights()">Reset highlights</button>
+      <button class="btn" onclick="fitGraph()">Fit graph</button>
+    </div>
+    <div id="network"></div>
+    <div class="graph-legend" id="legend"></div>
+    <div id="node-info"></div>
+  </div>
+
+  <!-- ── Chat ──────────────────────────────────────────────── -->
+  <div class="chat-panel">
+    <div class="chat-header">
+      <h2>Ask anything</h2>
+      <p>Natural language or JSON envelope · click a node to pre-fill</p>
+    </div>
+
+    <div class="templates" id="templates">
+      <!-- injected by JS -->
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="welcome">
+        <div class="icon">🔍</div>
+        <strong>Graph loaded and ready</strong>
+        <span>Click a node in the graph, pick a template, or type your own question below.</span>
+      </div>
+    </div>
+
+    <div class="chat-input-row">
+      <textarea id="chat-input" rows="1" placeholder="e.g. What is the blast radius of prod_mug?"></textarea>
+      <button id="send-btn" onclick="sendMessage()" title="Send">➤</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="/lib/vis-9.1.2/vis-network.min.js"></script>
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let network = null;
+let allNodes = null;   // vis DataSet
+let allEdges = null;   // vis DataSet
+let originalNodeColors = {};   // uri -> original color object
+let currentHighlighted = [];
+
+// ── Templates ────────────────────────────────────────────────────────────────
+const TEMPLATES = [
+  { label: "💥 Blast prod_mug",           text: "Show blast radius for prod_mug, depth 3 both directions" },
+  { label: "📊 Impact prod_mug",          text: "Run impact analysis for prod_mug with relationship_change, depth 4" },
+  { label: "⚡ Outage loc_syd_01",        text: "Simulate an outage at loc_syd_01 and show the impact" },
+  { label: "🗑 Remove metafield",         text: "Simulate removing the metafield from prod_mug using scenario scenarios/b_remove_metafield.json" },
+  { label: "🔀 Reroute fulfillment",      text: "Simulate reroute outage scenario using scenarios/outage_reroute_fulfillment.json" },
+  { label: "❓ What is blast radius?",    text: "What is blast radius analysis and how should I use it?" },
+];
+
+// ── Entity type colors ────────────────────────────────────────────────────────
+const TYPE_COLORS = {
+  "Product":        "#3498db",
+  "ProductVariant": "#2ecc71",
+  "Order":          "#9b59b6",
+  "Customer":       "#e67e22",
+  "InventoryItem":  "#e74c3c",
+  "Location":       "#f39c12",
+  "Metafield":      "#95a5a6",
+  "Metaobject":     "#1abc9c",
+  "Fulfillment":    "#e91e63",
+  "LineItem":       "#795548",
+};
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  renderTemplates();
+  await Promise.all([loadGraph(), loadEntities()]);
+  document.getElementById("status-badge").textContent = "Ready";
+  document.getElementById("status-badge").classList.remove("loading");
+}
+
+// ── Templates ────────────────────────────────────────────────────────────────
+function renderTemplates() {
+  const el = document.getElementById("templates");
+  el.innerHTML = "";
+  TEMPLATES.forEach(t => {
+    const btn = document.createElement("button");
+    btn.className = "tpl-btn";
+    btn.textContent = t.label;
+    btn.onclick = () => { setInput(t.text); };
+    el.appendChild(btn);
+  });
+}
+
+// ── Load graph ───────────────────────────────────────────────────────────────
+async function loadGraph() {
+  const res  = await fetch("/api/graph");
+  const data = await res.json();
+
+  // Save original colors
+  data.nodes.forEach(n => { originalNodeColors[n.id] = n.color; });
+
+  allNodes = new vis.DataSet(data.nodes);
+  allEdges = new vis.DataSet(data.edges);
+
+  const container = document.getElementById("network");
+  const options = {
+    physics: {
+      enabled: true,
+      solver: "forceAtlas2Based",
+      forceAtlas2Based: { gravitationalConstant: -60, springLength: 120, springConstant: 0.08 },
+      stabilization: { iterations: 200 },
+    },
+    edges: { smooth: { type: "continuous", roundness: 0.2 }, width: 1.5 },
+    nodes: { size: 18, shape: "dot", borderWidth: 2 },
+    interaction: { hover: true, tooltipDelay: 200 },
+  };
+
+  network = new vis.Network(container, { nodes: allNodes, edges: allEdges }, options);
+
+  // Click → pre-fill chat
+  network.on("click", params => {
+    if (params.nodes.length > 0) {
+      const uri = params.nodes[0];
+      const node = allNodes.get(uri);
+      showNodeInfo(uri, node);
+      setInput(`What is the blast radius of ${node.label}? (depth 3, both directions)`);
+      highlightSelected(uri);
+    } else {
+      hideNodeInfo();
+    }
+  });
+
+  network.on("hoverNode", params => {
+    const uri = params.node;
+    const node = allNodes.get(uri);
+    showNodeInfo(uri, node);
+  });
+
+  renderLegend();
+}
+
+// ── Load entities ────────────────────────────────────────────────────────────
+async function loadEntities() {
+  const res = await fetch("/api/entities");
+  const groups = await res.json();
+
+  const el = document.getElementById("entity-list");
+  el.innerHTML = "";
+
+  Object.entries(groups).forEach(([type, items]) => {
+    const color = TYPE_COLORS[type] || "#bdc3c7";
+
+    const groupEl = document.createElement("div");
+    groupEl.className = "entity-group";
+
+    const header = document.createElement("div");
+    header.className = "group-header";
+    header.innerHTML = `
+      <span class="group-dot" style="background:${color}"></span>
+      <span class="group-name">${type}</span>
+      <span class="group-count">${items.length}</span>
+      <span class="group-arrow" id="arrow-${type}">▶</span>
+    `;
+
+    const itemsEl = document.createElement("div");
+    itemsEl.className = "group-items";
+    itemsEl.id = `group-${type}`;
+
+    items.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "entity-card";
+      card.id = `card-${item.short}`;
+      card.innerHTML = `
+        <div class="name">${item.display}</div>
+        <div class="detail">${item.short}</div>
+      `;
+      card.onclick = () => {
+        focusNode(item.uri);
+        setInput(`What is the blast radius of ${item.short}? (depth 3, both directions)`);
+      };
+      itemsEl.appendChild(card);
+    });
+
+    header.onclick = () => {
+      const open = itemsEl.classList.toggle("open");
+      document.getElementById(`arrow-${type}`).classList.toggle("open", open);
+    };
+
+    // Default expand Products and Orders
+    if (["Product","Order","Customer"].includes(type)) {
+      itemsEl.classList.add("open");
+      // set arrow open
+      setTimeout(() => {
+        const arrow = document.getElementById(`arrow-${type}`);
+        if (arrow) arrow.classList.add("open");
+      }, 0);
+    }
+
+    groupEl.appendChild(header);
+    groupEl.appendChild(itemsEl);
+    el.appendChild(groupEl);
+  });
+}
+
+// ── Node info panel ───────────────────────────────────────────────────────────
+function showNodeInfo(uri, node) {
+  const el = document.getElementById("node-info");
+  const short = uri.split("#")[1] || uri;
+  el.style.display = "block";
+  el.innerHTML = `
+    <div class="ni-title">${short}</div>
+    <div class="ni-row"><span class="ni-key">Type</span><span class="ni-val">${node.group}</span></div>
+    <div class="ni-row"><span class="ni-key">URI</span><span class="ni-val" style="font-size:10px">${uri}</span></div>
+  `;
+}
+function hideNodeInfo() {
+  document.getElementById("node-info").style.display = "none";
+}
+
+// ── Legend ────────────────────────────────────────────────────────────────────
+function renderLegend() {
+  const el = document.getElementById("legend");
+  const types = [...new Set(allNodes.getIds().map(id => allNodes.get(id).group))];
+  el.innerHTML = `<div class="legend-title">Node types</div>`;
+  types.sort().forEach(t => {
+    const c = TYPE_COLORS[t] || "#bdc3c7";
+    el.innerHTML += `<div class="legend-item"><span class="legend-dot" style="background:${c}"></span>${t}</div>`;
+  });
+}
+
+// ── Graph highlight helpers ───────────────────────────────────────────────────
+const _SHADOW_NONE = { enabled: false };
+
+function _glow(color, size = 20) {
+  return { enabled: true, color, size, x: 0, y: 0 };
+}
+
+function resetHighlights() {
+  if (!allNodes) return;
+  const updates = allNodes.getIds().map(id => ({
+    id,
+    color: originalNodeColors[id],
+    borderWidth: 2,
+    borderWidthSelected: 3,
+    opacity: 1,
+    size: 18,
+    shadow: _SHADOW_NONE,
+    font: { color: "#e0e0e0" },
+  }));
+  allNodes.update(updates);
+  currentHighlighted = [];
+  hideNodeInfo();
+}
+
+function highlightSelected(uri) {
+  resetHighlights();
+  allNodes.update([{
+    id: uri,
+    color: { background: "#f1c40f", border: "#e67e22" },
+    size: 26, borderWidth: 4,
+    shadow: _glow("rgba(241,196,15,0.7)", 18),
+    font: { color: "#fff" },
+  }]);
+}
+
+function applyHighlights(startUri, highlighted, newlyImpacted, removedImpacts) {
+  resetHighlights();
+
+  const allIds = new Set(allNodes.getIds());
+  const affected = new Set([...highlighted, ...newlyImpacted, ...(startUri ? [startUri] : [])]);
+  const removedSet = new Set(removedImpacts || []);
+  affected.forEach(u => removedSet.delete(u));  // removed+affected → keep as affected
+
+  // Dim everything not in affected/removed
+  const dimmed = [];
+  allIds.forEach(id => {
+    if (!affected.has(id) && !removedSet.has(id))
+      dimmed.push({ id, opacity: 0.12, size: 13, shadow: _SHADOW_NONE });
+  });
+  allNodes.update(dimmed);
+
+  // Highlighted — blast / impact affected (vivid red with glow)
+  const affectedUpdates = highlighted
+    .filter(u => allIds.has(u) && u !== startUri)
+    .map(uri => ({
+      id: uri,
+      color: { background: "#e74c3c", border: "#c0392b", highlight: { background: "#ff6b6b", border: "#e74c3c" } },
+      size: 26,
+      borderWidth: 4,
+      opacity: 1,
+      shadow: _glow("rgba(231,76,60,0.75)", 22),
+      font: { color: "#fff", bold: { color: "#fff" } },
+    }));
+  allNodes.update(affectedUpdates);
+
+  // Newly impacted — scenario delta gains (vivid amber with glow)
+  const newUpdates = newlyImpacted
+    .filter(u => allIds.has(u) && u !== startUri)
+    .map(uri => ({
+      id: uri,
+      color: { background: "#f39c12", border: "#d68910", highlight: { background: "#ffc300", border: "#f39c12" } },
+      size: 28,
+      borderWidth: 4,
+      opacity: 1,
+      shadow: _glow("rgba(243,156,18,0.8)", 24),
+      font: { color: "#fff", bold: { color: "#fff" } },
+    }));
+  allNodes.update(newUpdates);
+
+  // Removed impacts — scenario delta losses (bright green with glow)
+  const removedUpdates = [...removedSet]
+    .filter(u => allIds.has(u))
+    .map(uri => ({
+      id: uri,
+      color: { background: "#2ecc71", border: "#1a8a4a", highlight: { background: "#58d68d", border: "#2ecc71" } },
+      size: 24,
+      borderWidth: 3,
+      opacity: 1,
+      shadow: _glow("rgba(46,204,113,0.7)", 20),
+      font: { color: "#fff" },
+    }));
+  allNodes.update(removedUpdates);
+
+  // Start node — always gold, biggest, strongest glow
+  if (startUri && allIds.has(startUri)) {
+    allNodes.update([{
+      id: startUri,
+      color: { background: "#f1c40f", border: "#d4ac0d", highlight: { background: "#ffe066", border: "#f1c40f" } },
+      size: 34,
+      borderWidth: 5,
+      opacity: 1,
+      shadow: _glow("rgba(241,196,15,0.9)", 28),
+      font: { color: "#1a1d2e", size: 14 },
+    }]);
+  }
+
+  // Fit to affected subgraph with gentle zoom
+  if (affected.size > 0 && network) {
+    network.fit({
+      nodes: [...affected],
+      animation: { duration: 700, easingFunction: "easeInOutQuad" },
+    });
+  }
+
+  currentHighlighted = highlighted;
+}
+
+function focusNode(uri) {
+  if (!network) return;
+  network.focus(uri, { scale: 1.4, animation: { duration: 600, easingFunction: "easeInOutQuad" } });
+  highlightSelected(uri);
+}
+
+function fitGraph() {
+  if (network) network.fit({ animation: true });
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+function setInput(text) {
+  const el = document.getElementById("chat-input");
+  el.value = text;
+  el.focus();
+  autoResize(el);
+}
+
+function autoResize(el) {
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 120) + "px";
+}
+
+document.getElementById("chat-input").addEventListener("input", function() { autoResize(this); });
+document.getElementById("chat-input").addEventListener("keydown", function(e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+function addMessage(role, text, cls = "") {
+  const wrap = document.getElementById("messages");
+
+  // Remove welcome screen if present
+  const welcome = wrap.querySelector(".welcome");
+  if (welcome) welcome.remove();
+
+  const msg = document.createElement("div");
+  msg.className = `msg ${role}`;
+  msg.innerHTML = `
+    <div class="msg-label">${role === "user" ? "You" : "Blast Radius"}</div>
+    <div class="msg-bubble ${cls}">${escHtml(text)}</div>
+  `;
+  wrap.appendChild(msg);
+  wrap.scrollTop = wrap.scrollHeight;
+  return msg;
+}
+
+function addHighlightBadge(msgEl, count, extra) {
+  const bubble = msgEl.querySelector(".msg-bubble");
+  if (!bubble || count === 0) return;
+  const badge = document.createElement("div");
+  badge.className = "highlight-info";
+  badge.textContent = `${count} node${count !== 1 ? "s" : ""} highlighted on graph${extra ? " · " + extra : ""}`;
+  msgEl.appendChild(badge);
+}
+
+async function sendMessage() {
+  const inputEl = document.getElementById("chat-input");
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  inputEl.value = "";
+  autoResize(inputEl);
+  document.getElementById("send-btn").disabled = true;
+
+  addMessage("user", text);
+  const thinkingMsg = addMessage("assistant", "Thinking…", "thinking");
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text }),
+    });
+    const data = await res.json();
+
+    // Replace thinking bubble
+    thinkingMsg.querySelector(".msg-bubble").textContent = data.response || data.error || "(empty response)";
+    thinkingMsg.querySelector(".msg-bubble").classList.remove("thinking");
+    if (data.error && !data.response) thinkingMsg.querySelector(".msg-bubble").classList.add("error");
+
+    // Highlight graph
+    const highlighted    = data.highlighted    || [];
+    const newlyImpacted  = data.newly_impacted  || [];
+    const removedImpacts = data.removed_impacts || [];
+
+    if (highlighted.length > 0 || newlyImpacted.length > 0) {
+      applyHighlights(data.start_uri, highlighted, newlyImpacted, removedImpacts);
+      let extra = "";
+      if (newlyImpacted.length)  extra += `${newlyImpacted.length} new`;
+      if (removedImpacts.length) extra += (extra ? " · " : "") + `${removedImpacts.length} removed`;
+      addHighlightBadge(thinkingMsg, highlighted.length || newlyImpacted.length, extra);
+    }
+
+  } catch (err) {
+    thinkingMsg.querySelector(".msg-bubble").textContent = `Error: ${err.message}`;
+    thinkingMsg.querySelector(".msg-bubble").classList.remove("thinking");
+    thinkingMsg.querySelector(".msg-bubble").classList.add("error");
+  }
+
+  document.getElementById("send-btn").disabled = false;
+  document.getElementById("messages").scrollTop = 9999;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

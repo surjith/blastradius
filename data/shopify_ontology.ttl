@@ -91,6 +91,16 @@ ex:hasVariant rdf:type owl:ObjectProperty ;
 
 
 
+###  https://example.com/shopify-onto#lineItemVariant
+
+ex:lineItemVariant rdf:type owl:ObjectProperty ;
+                   
+                   rdfs:domain ex:LineItem ;
+                   
+                   rdfs:range ex:ProductVariant .
+
+
+
 ###  https://example.com/shopify-onto#metafieldOwner
 
 ex:metafieldOwner rdf:type owl:ObjectProperty ;

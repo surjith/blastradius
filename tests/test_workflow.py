@@ -217,19 +217,19 @@ class TestRunSimulate:
 
 class TestFormatNode:
     def test_skips_if_response_set(self):
-        result = WorkflowBuilder.format_node({"response": "already done"})
+        result = _builder().format_node({"response": "already done"})
         assert result == {}
 
     def test_surfaces_error(self):
-        result = WorkflowBuilder.format_node({"error": "something broke"})
+        result = _builder().format_node({"error": "something broke"})
         assert result["response"] == "something broke"
 
     def test_missing_envelope_returns_internal_error(self):
-        result = WorkflowBuilder.format_node({})
+        result = _builder().format_node({})
         assert "Internal error" in result["response"]
 
     def test_missing_result_returns_internal_error(self):
-        result = WorkflowBuilder.format_node({
+        result = _builder().format_node({
             "envelope": {"intent": "blast"},
             # result is None / missing
         })
@@ -243,14 +243,14 @@ class TestFormatNode:
         res = BlastRadiusResults(
             start="urn:x", depth=2, direction="out", reached=[], paths={}
         )
-        result = WorkflowBuilder.format_node({
+        result = _builder().format_node({
             "envelope": {"intent": "blast"},
             "result": res.model_dump(),
         })
         assert result["response"] == "BLAST output"
 
     def test_unknown_intent_returns_help(self):
-        result = WorkflowBuilder.format_node({
+        result = _builder().format_node({
             "envelope": {"intent": "unknown_thing"},
             "result": {"some": "data"},
         })

@@ -20,8 +20,7 @@ from core.simulate_change import simulate_change
 from core.scenario import apply_scenario_to_graph
 from core.nx_builder import local_name
 
-# Day 4 (LangGraph orchestration)
-from orchestration.interpreters import JsonEnvelopeInterpreter
+from orchestration.openai_interpreter import AutoEnvelopeInterpreter, OpenAIEnvelopeInterpreter
 from orchestration.workflow import build_workflow
 
 app = typer.Typer(no_args_is_help=True)
@@ -39,12 +38,7 @@ def _load_scenario(path: Path) -> ScenarioSpec:
     except json.JSONDecodeError as e:
         raise typer.BadParameter(f"Invalid JSON in {path}: {e}") from e
 
-    # Pydantic v2
-    if hasattr(ScenarioSpec, "model_validate"):
-        return ScenarioSpec.model_validate(raw)
-
-    # Pydantic v1 fallback (not expected here, but safe)
-    return ScenarioSpec.parse_obj(raw)
+    return ScenarioSpec.model_validate(raw)
 
 
 def _read_file_robust(path: Path) -> str:
@@ -383,21 +377,15 @@ def simulate(
             typer.echo(f"... ({len(result.delta.removed_impacts) - 50} more)")
 
 
-# -------------------------
-# Day 4: LangGraph agent CLI
-# -------------------------
 @app.command()
 def agent(
-    message: str = typer.Option(None, "--message", help="JSON envelope as a string"),
+    message: str = typer.Option(None, "--message", help="Natural language OR JSON envelope"),
     envelope_file: Path = typer.Option(None, "--envelope-file", help="Path to JSON envelope file"),
     ontology: Path = typer.Option(DEFAULT_ONTO, exists=True),
     instances: Path = typer.Option(DEFAULT_INST, exists=True),
 ):
-    """
-    Day 4 orchestrator entrypoint (JSON-envelope driven).
-    """
     if envelope_file:
-        message = _read_file_robust(envelope_file)
+        message = envelope_file.read_text(encoding="utf-8")
         base_dir = str(envelope_file.parent)
     else:
         base_dir = str(Path("."))
@@ -406,7 +394,9 @@ def agent(
         raise typer.BadParameter("Provide --message or --envelope-file")
 
     sg = ShopifyGraph.from_ttl(ontology, instances)
-    wf = build_workflow(graph=sg, interpreter=JsonEnvelopeInterpreter())
+
+    interp = AutoEnvelopeInterpreter(nl=OpenAIEnvelopeInterpreter())
+    wf = build_workflow(graph=sg, interpreter=interp)
 
     out = wf.invoke({"user_input": message, "base_dir": base_dir})
     typer.echo(out.get("response", ""))
@@ -473,6 +463,20 @@ def visualize(
         f"edge_removes_skipped={applied.skipped_edge_removes}"
     )
 
+
+@app.command()
+def serve(
+    host: str = typer.Option("127.0.0.1", help="Bind host"),
+    port: int = typer.Option(8000, help="Bind port"),
+    reload: bool = typer.Option(False, help="Auto-reload on code changes (dev mode)"),
+):
+    """
+    Launch the Blast Radius web demo (FastAPI + vis.js).
+    Open http://localhost:8000 in your browser.
+    """
+    import uvicorn
+    typer.echo(f"Starting Blast Radius web demo at http://{host}:{port}")
+    uvicorn.run("web.server:app", host=host, port=port, reload=reload)
 
 if __name__ == "__main__":
     app()

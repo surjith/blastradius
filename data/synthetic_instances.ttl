@@ -17,6 +17,16 @@
   ex:name   "Melbourne Warehouse" ;
   ex:status "active" .
 
+:loc_bne_01 a ex:Location ;
+  ex:gid    "gid://shopify/Location/1003" ;
+  ex:name   "Brisbane Warehouse" ;
+  ex:status "active" .
+
+:loc_per_01 a ex:Location ;
+  ex:gid    "gid://shopify/Location/1004" ;
+  ex:name   "Perth Warehouse" ;
+  ex:status "active" .
+
 ######################################################################
 # Customers
 ######################################################################
@@ -29,6 +39,21 @@
 :cust_02 a ex:Customer ;
   ex:gid    "gid://shopify/Customer/2002" ;
   ex:name   "Liam Chen" ;
+  ex:status "active" .
+
+:cust_03 a ex:Customer ;
+  ex:gid    "gid://shopify/Customer/2003" ;
+  ex:name   "Sophie Taylor" ;
+  ex:status "active" .
+
+:cust_04 a ex:Customer ;
+  ex:gid    "gid://shopify/Customer/2004" ;
+  ex:name   "Marco Rossi" ;
+  ex:status "active" .
+
+:cust_05 a ex:Customer ;
+  ex:gid    "gid://shopify/Customer/2005" ;
+  ex:name   "Emma Wilson" ;
   ex:status "active" .
 
 ######################################################################
@@ -84,6 +109,99 @@
   ex:status "in_stock" ;
   ex:sku    "MG-W-010" .
 
+:prod_tote a ex:Product ;
+  ex:gid    "gid://shopify/Product/3003" ;
+  ex:name   "Canvas Tote Bag" ;
+  ex:status "active" ;
+  ex:hasVariant :var_tote_natural ;
+  ex:hasVariant :var_tote_black .
+
+:var_tote_natural a ex:ProductVariant ;
+  ex:gid    "gid://shopify/ProductVariant/3120" ;
+  ex:name   "Canvas Tote Bag - Natural" ;
+  ex:status "active" ;
+  ex:hasInventoryItem :inv_tote_natural .
+
+:var_tote_black a ex:ProductVariant ;
+  ex:gid    "gid://shopify/ProductVariant/3121" ;
+  ex:name   "Canvas Tote Bag - Black" ;
+  ex:status "active" ;
+  ex:hasInventoryItem :inv_tote_black .
+
+:inv_tote_natural a ex:InventoryItem ;
+  ex:gid    "gid://shopify/InventoryItem/3220" ;
+  ex:name   "Tote Natural Inventory" ;
+  ex:status "in_stock" ;
+  ex:sku    "TB-N-020" .
+
+:inv_tote_black a ex:InventoryItem ;
+  ex:gid    "gid://shopify/InventoryItem/3221" ;
+  ex:name   "Tote Black Inventory" ;
+  ex:status "in_stock" ;
+  ex:sku    "TB-B-020" .
+
+:prod_cap a ex:Product ;
+  ex:gid    "gid://shopify/Product/3004" ;
+  ex:name   "Logo Cap" ;
+  ex:status "active" ;
+  ex:hasVariant :var_cap_sm ;
+  ex:hasVariant :var_cap_lxl .
+
+:var_cap_sm a ex:ProductVariant ;
+  ex:gid    "gid://shopify/ProductVariant/3130" ;
+  ex:name   "Logo Cap - S/M" ;
+  ex:status "active" ;
+  ex:hasInventoryItem :inv_cap_sm .
+
+:var_cap_lxl a ex:ProductVariant ;
+  ex:gid    "gid://shopify/ProductVariant/3131" ;
+  ex:name   "Logo Cap - L/XL" ;
+  ex:status "active" ;
+  ex:hasInventoryItem :inv_cap_lxl .
+
+:inv_cap_sm a ex:InventoryItem ;
+  ex:gid    "gid://shopify/InventoryItem/3230" ;
+  ex:name   "Cap S/M Inventory" ;
+  ex:status "in_stock" ;
+  ex:sku    "CP-SM-030" .
+
+:inv_cap_lxl a ex:InventoryItem ;
+  ex:gid    "gid://shopify/InventoryItem/3231" ;
+  ex:name   "Cap L/XL Inventory" ;
+  ex:status "out_of_stock" ;
+  ex:sku    "CP-LXL-030" .
+
+:prod_bottle a ex:Product ;
+  ex:gid    "gid://shopify/Product/3005" ;
+  ex:name   "Insulated Water Bottle" ;
+  ex:status "active" ;
+  ex:hasVariant :var_bottle_500 ;
+  ex:hasVariant :var_bottle_1000 .
+
+:var_bottle_500 a ex:ProductVariant ;
+  ex:gid    "gid://shopify/ProductVariant/3140" ;
+  ex:name   "Water Bottle - 500ml" ;
+  ex:status "active" ;
+  ex:hasInventoryItem :inv_bottle_500 .
+
+:var_bottle_1000 a ex:ProductVariant ;
+  ex:gid    "gid://shopify/ProductVariant/3141" ;
+  ex:name   "Water Bottle - 1000ml" ;
+  ex:status "active" ;
+  ex:hasInventoryItem :inv_bottle_1000 .
+
+:inv_bottle_500 a ex:InventoryItem ;
+  ex:gid    "gid://shopify/InventoryItem/3240" ;
+  ex:name   "Bottle 500ml Inventory" ;
+  ex:status "in_stock" ;
+  ex:sku    "WB-500-040" .
+
+:inv_bottle_1000 a ex:InventoryItem ;
+  ex:gid    "gid://shopify/InventoryItem/3241" ;
+  ex:name   "Bottle 1000ml Inventory" ;
+  ex:status "low_stock" ;
+  ex:sku    "WB-1L-040" .
+
 ######################################################################
 # Orders, LineItems, Fulfillments
 ######################################################################
@@ -138,6 +256,85 @@
   ex:fulfilledFrom :loc_mel_01 ;
   ex:fulfillsLineItem :li_9002_1 .
 
+:order_9003 a ex:Order ;
+  ex:gid        "gid://shopify/Order/9003" ;
+  ex:name       "Order #9003" ;
+  ex:status     "unfulfilled" ;
+  ex:orderedBy  :cust_03 ;
+  ex:hasLineItem :li_9003_1 ;
+  ex:hasLineItem :li_9003_2 ;
+  ex:hasFulfillment :ful_9003_1 .
+
+:li_9003_1 a ex:LineItem ;
+  ex:gid    "gid://shopify/LineItem/9104" ;
+  ex:name   "Canvas Tote Bag - Natural (x1)" ;
+  ex:status "open" ;
+  ex:lineItemVariant :var_tote_natural .
+
+:li_9003_2 a ex:LineItem ;
+  ex:gid    "gid://shopify/LineItem/9105" ;
+  ex:name   "Water Bottle - 500ml (x1)" ;
+  ex:status "open" ;
+  ex:lineItemVariant :var_bottle_500 .
+
+:ful_9003_1 a ex:Fulfillment ;
+  ex:gid    "gid://shopify/Fulfillment/9203" ;
+  ex:name   "Fulfillment 9203" ;
+  ex:status "pending" ;
+  ex:fulfilledFrom :loc_mel_01 ;
+  ex:fulfillsLineItem :li_9003_1 ;
+  ex:fulfillsLineItem :li_9003_2 .
+
+:order_9004 a ex:Order ;
+  ex:gid        "gid://shopify/Order/9004" ;
+  ex:name       "Order #9004" ;
+  ex:status     "in_progress" ;
+  ex:orderedBy  :cust_04 ;
+  ex:hasLineItem :li_9004_1 ;
+  ex:hasFulfillment :ful_9004_1 .
+
+:li_9004_1 a ex:LineItem ;
+  ex:gid    "gid://shopify/LineItem/9106" ;
+  ex:name   "Logo Cap - S/M (x2)" ;
+  ex:status "open" ;
+  ex:lineItemVariant :var_cap_sm .
+
+:ful_9004_1 a ex:Fulfillment ;
+  ex:gid    "gid://shopify/Fulfillment/9204" ;
+  ex:name   "Fulfillment 9204" ;
+  ex:status "processing" ;
+  ex:fulfilledFrom :loc_bne_01 ;
+  ex:fulfillsLineItem :li_9004_1 .
+
+:order_9005 a ex:Order ;
+  ex:gid        "gid://shopify/Order/9005" ;
+  ex:name       "Order #9005" ;
+  ex:status     "unfulfilled" ;
+  ex:orderedBy  :cust_05 ;
+  ex:hasLineItem :li_9005_1 ;
+  ex:hasLineItem :li_9005_2 ;
+  ex:hasFulfillment :ful_9005_1 .
+
+:li_9005_1 a ex:LineItem ;
+  ex:gid    "gid://shopify/LineItem/9107" ;
+  ex:name   "Canvas Tote Bag - Black (x1)" ;
+  ex:status "open" ;
+  ex:lineItemVariant :var_tote_black .
+
+:li_9005_2 a ex:LineItem ;
+  ex:gid    "gid://shopify/LineItem/9108" ;
+  ex:name   "Water Bottle - 1000ml (x1)" ;
+  ex:status "open" ;
+  ex:lineItemVariant :var_bottle_1000 .
+
+:ful_9005_1 a ex:Fulfillment ;
+  ex:gid    "gid://shopify/Fulfillment/9205" ;
+  ex:name   "Fulfillment 9205" ;
+  ex:status "pending" ;
+  ex:fulfilledFrom :loc_per_01 ;
+  ex:fulfillsLineItem :li_9005_1 ;
+  ex:fulfillsLineItem :li_9005_2 .
+
 ######################################################################
 # Metaobjects + Metafields (demonstrate schema-ish dependencies)
 ######################################################################
@@ -145,6 +342,11 @@
 :mo_campaign_summer a ex:Metaobject ;
   ex:gid    "gid://shopify/Metaobject/7001" ;
   ex:name   "Summer Campaign 2026" ;
+  ex:status "active" .
+
+:mo_campaign_winter a ex:Metaobject ;
+  ex:gid    "gid://shopify/Metaobject/7002" ;
+  ex:name   "Winter Campaign 2026" ;
   ex:status "active" .
 
 :mf_prod_hoodie_campaign a ex:Metafield ;
@@ -161,6 +363,22 @@
   ex:metafieldOwner :prod_mug ;
   ex:referencesMetaobject :mo_campaign_summer .
 
-# Optional: also link owner -> metafield using hasMetafield (domain is owl:Thing in your ontology)
-:prod_hoodie ex:hasMetafield :mf_prod_hoodie_campaign .
-:prod_mug    ex:hasMetafield :mf_prod_mug_campaign .
+:mf_prod_tote_campaign a ex:Metafield ;
+  ex:gid    "gid://shopify/Metafield/8003" ;
+  ex:name   "campaign_ref" ;
+  ex:status "active" ;
+  ex:metafieldOwner :prod_tote ;
+  ex:referencesMetaobject :mo_campaign_winter .
+
+:mf_prod_cap_campaign a ex:Metafield ;
+  ex:gid    "gid://shopify/Metafield/8004" ;
+  ex:name   "campaign_ref" ;
+  ex:status "active" ;
+  ex:metafieldOwner :prod_cap ;
+  ex:referencesMetaobject :mo_campaign_winter .
+
+# Link owners to their metafields via hasMetafield
+:prod_hoodie  ex:hasMetafield :mf_prod_hoodie_campaign .
+:prod_mug     ex:hasMetafield :mf_prod_mug_campaign .
+:prod_tote    ex:hasMetafield :mf_prod_tote_campaign .
+:prod_cap     ex:hasMetafield :mf_prod_cap_campaign .
