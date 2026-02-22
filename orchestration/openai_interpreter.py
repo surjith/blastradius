@@ -159,7 +159,7 @@ class OpenAIEnvelopeInterpreter(EnvelopeInterpreter):
     def __init__(self) -> None:
         load_dotenv(override=True, encoding="utf-8-sig")
         self._client = OpenAI()
-        self._model = os.environ.get("OPENAI_MODEL", "gpt-4o")
+        self._model = os.environ.get("OPENAI_MODEL", "gpt-5.2")
 
     def interpret(self, text: str) -> dict[str, Any]:
         resp = self._client.responses.create(
