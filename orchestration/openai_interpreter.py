@@ -39,8 +39,9 @@ Known instance shortnames (use these to build full URIs):
 
 Rules:
 - intent: one of blast|impact|simulate|help
+- Questions like "what are the variants of X", "tell me about Y", or "show neighbors of Z" should use intent=blast.
 - start_uri: a full URI (https://example.com/shopify-inst#<shortname>)
-- traversal: choose reasonable defaults if not specified (depth 3-4, direction both)
+- traversal: choose reasonable defaults if not specified (depth 1 or 2 for simple lookups, 3-4 for blast radius). direction=out for "variants of", both for general blast.
 - For impact/simulate: include change with change_type and target_uri (usually target_uri=start_uri)
 - For simulate with a known scenario file, set scenario_file as a path relative to the repo root.
   Available scenario files:
@@ -158,7 +159,7 @@ class OpenAIEnvelopeInterpreter(EnvelopeInterpreter):
     def __init__(self) -> None:
         load_dotenv(override=True, encoding="utf-8-sig")
         self._client = OpenAI()
-        self._model = os.environ.get("OPENAI_MODEL", "gpt-5.2")
+        self._model = os.environ.get("OPENAI_MODEL", "gpt-4o")
 
     def interpret(self, text: str) -> dict[str, Any]:
         resp = self._client.responses.create(
