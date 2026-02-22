@@ -58,6 +58,24 @@ uv run main.py serve
 # → open http://localhost:8000
 ```
 
+---
+
+## Run with Docker
+
+If you have Docker installed, you can launch the entire project without setting up a Python environment:
+
+```bash
+# 1. Prepare your .env file
+cp .env.example .env          # then edit .env and set OPENAI_API_KEY
+
+# 2. Build and start
+docker-compose up --build
+
+# 3. Open http://localhost:8000
+```
+
+---
+
 **.env file**
 
 ```

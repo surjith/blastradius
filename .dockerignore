@@ -1,0 +1,20 @@
+# Ignore local environment and caches
+.env
+.venv
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore git
+.git
+.gitignore
+
+# Ignore local artifacts
+artifacts/
+*.html
+
+# Ignore IDE files
+.vscode
+.idea
