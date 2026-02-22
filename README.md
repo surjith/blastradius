@@ -67,29 +67,6 @@ OPENAI_MODEL=gpt-4o
 
 ---
 
-## CLI usage
-
-```bash
-# Blast radius — what does this node touch?
-uv run main.py blast --start "https://example.com/shopify-inst#prod_mug" --depth 4 --direction both
-
-# Impact analysis — what is affected if this relationship changes?
-uv run main.py impact --change-type relationship_change --target "https://example.com/shopify-inst#prod_mug"
-
-# Simulate a what-if scenario
-uv run main.py simulate --change-type relationship_change --start "https://example.com/shopify-inst#loc_mel_01" \
-  --scenario-json scenarios/outage_reroute_fulfillment.json
-
-# Natural-language agent (requires OPENAI_API_KEY)
-uv run main.py agent --message "What is the blast radius of the Ceramic Mug?"
-uv run main.py agent --envelope-file envelopes/blast_prod_mug.json
-
-# Generate pyvis HTML visualisation
-uv run main.py visualize --scenario-json scenarios/remove_variant.json
-```
-
----
-
 ## Web demo
 
 The SPA at `http://localhost:8000` provides:
@@ -179,3 +156,26 @@ Layered output: deterministic graph result + LLM-generated business narrative:
 - Structured logs, distributed traces, metrics
 - Docker packaging, CI/CD pipeline
 - Prompt injection resistance and security review
+
+## CLI usage
+
+```bash
+# Blast radius — what does this node touch?
+uv run main.py blast --start "https://example.com/shopify-inst#prod_mug" --depth 4 --direction both
+
+# Impact analysis — what is affected if this relationship changes?
+uv run main.py impact --change-type relationship_change --target "https://example.com/shopify-inst#prod_mug"
+
+# Simulate a what-if scenario
+uv run main.py simulate --change-type relationship_change --start "https://example.com/shopify-inst#loc_mel_01" \
+  --scenario-json scenarios/outage_reroute_fulfillment.json
+
+# Natural-language agent (requires OPENAI_API_KEY)
+uv run main.py agent --message "What is the blast radius of the Ceramic Mug?"
+uv run main.py agent --envelope-file envelopes/blast_prod_mug.json
+
+# Generate pyvis HTML visualisation
+uv run main.py visualize --scenario-json scenarios/remove_variant.json
+```
+
+---
