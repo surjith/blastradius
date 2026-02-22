@@ -1,0 +1,19 @@
+﻿{
+  "scenario_id": "e_attr_only_colors",
+  "description": "Attribute-only: change node statuses to visualize color changes.",
+  "attribute_overrides": [
+    {
+      "node_uri": "https://example.com/shopify-inst#loc_syd_01",
+      "key": "status",
+      "op": "set",
+      "value": "outage"
+    },
+    {
+      "node_uri": "https://example.com/shopify-inst#ful_9001_1",
+      "key": "status",
+      "op": "unset",
+      "value": null
+    }
+  ],
+  "edge_mutations": []
+}

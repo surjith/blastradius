@@ -20,6 +20,10 @@ from core.simulate_change import simulate_change
 from core.scenario import apply_scenario_to_graph
 from core.nx_builder import local_name
 
+# Day 4 (LangGraph orchestration)
+from orchestration.interpreters import JsonEnvelopeInterpreter
+from orchestration.workflow import build_workflow
+
 app = typer.Typer(no_args_is_help=True)
 
 DEFAULT_ONTO = Path("data/shopify_ontology.ttl")
@@ -31,7 +35,7 @@ def _load_scenario(path: Path) -> ScenarioSpec:
         raise typer.BadParameter(f"scenario-json file not found: {path}")
 
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
+        raw = json.loads(_read_file_robust(path))
     except json.JSONDecodeError as e:
         raise typer.BadParameter(f"Invalid JSON in {path}: {e}") from e
 
@@ -41,6 +45,18 @@ def _load_scenario(path: Path) -> ScenarioSpec:
 
     # Pydantic v1 fallback (not expected here, but safe)
     return ScenarioSpec.parse_obj(raw)
+
+
+def _read_file_robust(path: Path) -> str:
+    # Try utf-8-sig first (handles BOM and non-BOM UTF-8)
+    # Then utf-16 (Windows default)
+    # Then cp1252 (Windows legacy)
+    for encoding in ["utf-8-sig", "utf-16", "cp1252"]:
+        try:
+            return path.read_text(encoding=encoding)
+        except UnicodeDecodeError:
+            continue
+    raise ValueError(f"Could not decode file {path} with common encodings.")
 
 
 def _print_counts(title: str, counts: dict[str, int]) -> None:
@@ -85,11 +101,7 @@ def _render_graph_html(
         label = _node_label(str(n))
         node_type = data.get("type", "")
         status = data.get("status", "")
-        tooltip = (
-            f"uri: {n}<br>"
-            f"type: {node_type}<br>"
-            f"status: {status}"
-        )
+        tooltip = f"uri: {n}<br>type: {node_type}<br>status: {status}"
         net.add_node(
             str(n),
             label=label,
@@ -168,6 +180,7 @@ def _focused_subgraph(
     nodes.add(start)
     return G.subgraph(nodes).copy()
 
+
 def _print_top_impacts(label: str, report) -> None:
     typer.echo(f"\n--- TOP IMPACTS ({label}) ---")
     for item in report.top_impacts:
@@ -199,7 +212,6 @@ def blast(
     typer.echo(f"Depth: {res.depth}, Direction: {res.direction}")
     typer.echo(f"Reached nodes ({len(res.reached)}):")
 
-    # Show one primary path per reached node
     for node in res.reached:
         path = res.paths[node][0]
         typer.echo(f"- {node}")
@@ -216,11 +228,9 @@ def impact(
     top_n: int = typer.Option(10, help="How many top impacts to show"),
     ontology: Path = typer.Option(DEFAULT_ONTO, exists=True),
     instances: Path = typer.Option(DEFAULT_INST, exists=True),
-    # For attribute/state changes
     attribute_name: str = typer.Option(None, help="Attribute name (e.g., status, price)"),
     old_value: str = typer.Option(None, help="Old value"),
     new_value: str = typer.Option(None, help="New value"),
-    # For relationship changes (reserved for later)
     relation: str = typer.Option(None, help="Predicate local name (e.g., hasVariant)"),
     related_uri: str = typer.Option(None, help="Other endpoint URI"),
     operation: str = typer.Option(None, help="add/remove"),
@@ -268,7 +278,6 @@ def impact(
         )
 
     typer.echo(f"\nTotal impacted: {report.summary.total_impacted}")
-
     _print_counts("\nCounts by type:", report.summary.counts_by_type)
 
     typer.echo("\nTop impacts:")
@@ -288,23 +297,20 @@ def simulate(
     top_n: int = typer.Option(10, help="How many top impacts to show"),
     scenario_json: Path = typer.Option(..., "--scenario-json", help="ScenarioSpec JSON file"),
     strict: bool = typer.Option(False, help="Strict scenario application mode"),
-    show_top: bool = typer.Option(True, "--show-top/--no-show-top", help="Show top impacts for baseline and simulated"),
+    show_top: bool = typer.Option(
+        True, "--show-top/--no-show-top", help="Show top impacts for baseline and simulated"
+    ),
     validate: bool = typer.Option(True, "--validate/--no-validate", help="Validate report invariants"),
     ontology: Path = typer.Option(DEFAULT_ONTO, exists=True),
     instances: Path = typer.Option(DEFAULT_INST, exists=True),
-    # For attribute/state changes
     attribute_name: str = typer.Option(None, help="Attribute name (e.g., status, price)"),
     old_value: str = typer.Option(None, help="Old value"),
     new_value: str = typer.Option(None, help="New value"),
-    # For relationship changes (reserved for later)
     relation: str = typer.Option(None, help="Predicate local name (e.g., hasVariant)"),
     related_uri: str = typer.Option(None, help="Other endpoint URI"),
     operation: str = typer.Option(None, help="add/remove"),
     as_json: bool = typer.Option(False, help="Print ScenarioResult as JSON"),
 ):
-    """
-    Run baseline vs simulated impact and compute deltas.
-    """
     sg = ShopifyGraph.from_ttl(ontology, instances)
 
     change = ChangeSpec(
@@ -355,13 +361,12 @@ def simulate(
 
     typer.echo("\n--- DELTA ---")
     typer.echo(f"Newly impacted: {len(result.delta.newly_impacted)}")
-    typer.echo(f"No longer impacted: {len(result.delta.removed_impacts)}")
+    typer.echo(f"Removed impacts: {len(result.delta.removed_impacts)}")
     _print_counts("Delta counts by type:", result.delta.delta_counts_by_type)
 
     if show_top:
         _print_top_impacts("BASELINE", result.baseline)
         _print_top_impacts("SIMULATED", result.simulated)
-
 
     if result.delta.newly_impacted:
         typer.echo("\nNewly impacted URIs:")
@@ -376,6 +381,35 @@ def simulate(
             typer.echo(f"- {u}")
         if len(result.delta.removed_impacts) > 50:
             typer.echo(f"... ({len(result.delta.removed_impacts) - 50} more)")
+
+
+# -------------------------
+# Day 4: LangGraph agent CLI
+# -------------------------
+@app.command()
+def agent(
+    message: str = typer.Option(None, "--message", help="JSON envelope as a string"),
+    envelope_file: Path = typer.Option(None, "--envelope-file", help="Path to JSON envelope file"),
+    ontology: Path = typer.Option(DEFAULT_ONTO, exists=True),
+    instances: Path = typer.Option(DEFAULT_INST, exists=True),
+):
+    """
+    Day 4 orchestrator entrypoint (JSON-envelope driven).
+    """
+    if envelope_file:
+        message = _read_file_robust(envelope_file)
+        base_dir = str(envelope_file.parent)
+    else:
+        base_dir = str(Path("."))
+
+    if not message:
+        raise typer.BadParameter("Provide --message or --envelope-file")
+
+    sg = ShopifyGraph.from_ttl(ontology, instances)
+    wf = build_workflow(graph=sg, interpreter=JsonEnvelopeInterpreter())
+
+    out = wf.invoke({"user_input": message, "base_dir": base_dir})
+    typer.echo(out.get("response", ""))
 
 
 @app.command()
@@ -396,7 +430,6 @@ def visualize(
     """
     Generate side-by-side HTML visualization for baseline vs simulated graphs.
     """
-    # Fail fast with a clear install instruction if dependency is missing.
     _require_pyvis()
 
     sg = ShopifyGraph.from_ttl(ontology, instances)

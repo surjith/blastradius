@@ -1,0 +1,9 @@
+﻿{
+  "intent": "simulate",
+  "start_uri": "https://example.com/shopify-inst#prod_mug",
+  "traversal": { "depth": 4, "direction": "out", "max_results": 200, "top_n": 10 },
+  "change": { "change_type": "schema_change", "target_uri": "https://example.com/shopify-inst#prod_mug" },
+  "scenario_file": "../scenarios/b_remove_metafield.json",
+  "strict": true,
+  "validate": true
+}

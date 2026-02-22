@@ -1,0 +1,28 @@
+﻿{
+  "scenario_id": "d_reroute_outage",
+  "description": "Warehouse outage: move fulfillment from Sydney to Melbourne and mark Sydney as outage.",
+  "attribute_overrides": [
+    {
+      "node_uri": "https://example.com/shopify-inst#loc_syd_01",
+      "key": "status",
+      "op": "set",
+      "value": "outage"
+    }
+  ],
+  "edge_mutations": [
+    {
+      "op": "remove",
+      "src_uri": "https://example.com/shopify-inst#ful_9001_1",
+      "dst_uri": "https://example.com/shopify-inst#loc_syd_01",
+      "relation": "fulfilledFrom",
+      "predicate_uri": "https://example.com/shopify-onto#fulfilledFrom"
+    },
+    {
+      "op": "add",
+      "src_uri": "https://example.com/shopify-inst#ful_9001_1",
+      "dst_uri": "https://example.com/shopify-inst#loc_mel_01",
+      "relation": "fulfilledFrom",
+      "predicate_uri": "https://example.com/shopify-onto#fulfilledFrom"
+    }
+  ]
+}
